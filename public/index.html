@@ -20,6 +20,8 @@
       <form id="form-create">
         <label for="name-create">Il tuo nome</label>
         <input id="name-create" maxlength="24" autocomplete="nickname" required placeholder="Es. Edoardo">
+        <label for="email-create">Email <span class="muted">(facoltativa, per i promemoria)</span></label>
+        <input id="email-create" type="email" maxlength="254" autocomplete="email" placeholder="nome@azienda.it">
         <button type="submit" class="primary">Nuova partita</button>
       </form>
     </section>
@@ -31,6 +33,8 @@
       <form id="form-join">
         <label for="name-join">Il tuo nome</label>
         <input id="name-join" maxlength="24" autocomplete="nickname" required>
+        <label for="email-join">Email <span class="muted">(facoltativa, per i promemoria)</span></label>
+        <input id="email-join" type="email" maxlength="254" autocomplete="email" placeholder="nome@azienda.it">
         <button type="submit" class="primary">Entra nella partita</button>
       </form>
     </section>
@@ -56,6 +60,22 @@
           <button id="btn-ready" type="button" class="primary" disabled>Pronto!</button>
         </div>
       </div>
+
+      <details id="notify" class="card notify">
+        <summary>🔔 Notifiche e promemoria <span id="notify-summary" class="muted"></span></summary>
+        <p class="muted">Quando tocca a te ricevi una notifica nel browser. Se dopo 5 minuti non hai ancora aperto la partita, ti mandiamo un'email con la situazione e il link.</p>
+        <div class="row">
+          <button id="btn-push" type="button" class="primary">Attiva notifiche del browser</button>
+          <span id="push-status" class="muted"></span>
+        </div>
+        <form id="form-email" class="inline">
+          <label for="email-settings">Email per i promemoria</label>
+          <div class="share-row">
+            <input id="email-settings" type="email" maxlength="254" autocomplete="email" placeholder="nome@azienda.it">
+            <button type="submit">Salva</button>
+          </div>
+        </form>
+      </details>
 
       <div class="boards">
         <div class="board-wrap">

@@ -110,3 +110,8 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 @media (max-width: 640px) {
   .boards.playing #wrap-opp { order: -1; }
 }
+
+.notify summary { cursor: pointer; font-weight: 600; }
+.notify p { margin: 12px 0; }
+.notify .row { align-items: center; }
+form.inline { margin-top: 16px; }

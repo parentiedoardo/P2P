@@ -12,11 +12,20 @@ Gira su Cloudflare Workers + Durable Objects (piano gratuito).
 
 Se chiudi la scheda, riaprendo lo stesso link riprendi la partita da dove era rimasta.
 
+## Notifiche e promemoria
+- **Notifica del browser** appena tocca a te (pannello "🔔 Notifiche e promemoria" → "Attiva notifiche del browser").
+  Funziona anche a scheda chiusa grazie al Web Push. Su iPhone serve aggiungere il sito alla schermata Home.
+- **Email di promemoria** se dopo 5 minuti non hai ancora aperto la partita: contiene l'immagine aggiornata
+  del campo e il pulsante "Torna alla partita" (il link ti fa rientrare anche da un altro PC). Una sola email per turno.
+
 ## Struttura
 - `public/engine.js` – regole del gioco (condivise da server e browser)
 - `public/index.html`, `app.js`, `style.css` – interfaccia
-- `src/worker.js` – API e `GameRoom`, un Durable Object per partita con WebSocket
-- `test/engine.test.js` – test delle regole
+- `src/worker.js` – API e `GameRoom`, un Durable Object per partita: WebSocket, timer dei promemoria
+- `src/webpush.js` – notifiche push (VAPID + cifratura) senza librerie esterne
+- `src/png.js`, `src/notify.js` – immagine PNG del campo e testo delle email
+- `public/sw.js` – service worker che mostra le notifiche
+- `test/` – test delle regole, del push e dell'immagine
 
 ## Sviluppo
 ```bash
@@ -25,10 +34,25 @@ npm test        # test del motore
 npm run dev     # http://localhost:8787
 ```
 
+In locale le email non partono: vengono scritte nel log di `wrangler dev` come `[email simulata]`.
+Per provare i promemoria più in fretta, crea `.dev.vars` con `REMINDER_MINUTES=0.1` (6 secondi).
+
+## Configurazione
+| Variabile | A cosa serve | Obbligatoria |
+|---|---|---|
+| `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` | Notifiche push a scheda chiusa. Generale con `node scripts/vapid-keys.mjs` | Per il push |
+| `VAPID_SUBJECT` | Contatto per i servizi push, es. `mailto:tu@dominio.it` | Per il push |
+| `RESEND_API_KEY` | Invio email con [Resend](https://resend.com) (piano gratuito) | Per le email |
+| `EMAIL_FROM` | Mittente, es. `Battaglia navale <noreply@tuodominio.it>` (dominio verificato su Resend) | Per le email |
+| `REMINDER_MINUTES` | Minuti prima del promemoria (predefinito 5) | No |
+
+Online si impostano con `npx wrangler secret put NOME`.
+
 ## Pubblicazione
 Serve un account Cloudflare gratuito.
 ```bash
 npx wrangler login
 npm run deploy
+npx wrangler secret put VAPID_PUBLIC_KEY   # e le altre variabili sopra
 ```
 Il sito sarà su `https://battaglia-navale.<tuo-sottodominio>.workers.dev`.

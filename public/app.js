@@ -12,7 +12,14 @@ const store = {
 
 const params = new URLSearchParams(location.search);
 let gameId = params.get('g');
-let token = gameId ? store.get('bn:' + gameId) : null;
+// Il link nei promemoria contiene il token (?t=): lo salviamo e lo togliamo dall'indirizzo.
+if (gameId && params.get('t')) {
+  store.set('bn:' + gameId, params.get('t'));
+  history.replaceState(null, '', '/?g=' + gameId);
+}
+let token = gameId ? store.get('bn:' + gameId) || params.get('t') : null;
+let vapidKey = null;
+let pushEndpoint = null; // sottoscrizione push di questo browser
 
 let state = null;        // ultima vista ricevuta dal server
 let ws = null;
@@ -36,12 +43,16 @@ function toast(text) {
 }
 
 const savedName = store.get('bn:name') || '';
+const savedEmail = store.get('bn:email') || '';
 $('name-create').value = savedName;
 $('name-join').value = savedName;
+$('email-create').value = savedEmail;
+$('email-join').value = savedEmail;
 
-async function post(url, name) {
+async function post(url, name, email) {
   store.set('bn:name', name);
-  const res = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name }) });
+  store.set('bn:email', email);
+  const res = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name, email }) });
   const data = await res.json().catch(() => ({}));
   if (!res.ok || data.error) throw new Error(data.error || 'Errore di rete, riprova.');
   return data;
@@ -50,7 +61,7 @@ async function post(url, name) {
 $('form-create').addEventListener('submit', async (e) => {
   e.preventDefault();
   try {
-    const data = await post('/api/games', $('name-create').value);
+    const data = await post('/api/games', $('name-create').value, $('email-create').value);
     gameId = data.gameId;
     token = data.token;
     store.set('bn:' + gameId, token);
@@ -62,7 +73,7 @@ $('form-create').addEventListener('submit', async (e) => {
 $('form-join').addEventListener('submit', async (e) => {
   e.preventDefault();
   try {
-    const data = await post(`/api/games/${gameId}/join`, $('name-join').value);
+    const data = await post(`/api/games/${gameId}/join`, $('name-join').value, $('email-join').value);
     token = data.token;
     store.set('bn:' + gameId, token);
     startGame();
@@ -73,7 +84,7 @@ $('form-join').addEventListener('submit', async (e) => {
 function connect() {
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
   ws = new WebSocket(`${proto}://${location.host}/api/games/${gameId}/ws?token=${encodeURIComponent(token)}`);
-  ws.onopen = () => { retry = 0; };
+  ws.onopen = () => { retry = 0; dispatchEvent(new Event('bn:connected')); };
   ws.onmessage = (ev) => {
     const msg = JSON.parse(ev.data);
     if (msg.type === 'state') onState(msg.state);
@@ -92,9 +103,9 @@ function connect() {
   };
 }
 
-function send(msg) {
+function send(msg, quiet = false) {
   if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(msg));
-  else toast('Non connesso, riprova tra un attimo.');
+  else if (!quiet) toast('Non connesso, riprova tra un attimo.');
 }
 
 function startGame() {
@@ -117,7 +128,27 @@ function onState(next) {
     toast(`${LETTERS[next.lastShot.x]}${next.lastShot.y + 1}: ${describe(next.lastShot)}`);
   }
   document.title = next.myTurn ? '🔴 Tocca a te! · Battaglia navale' : 'Battaglia navale';
+  if (prev && !prev.myTurn && next.myTurn && document.visibilityState !== 'visible') localNotify(next);
+  markSeen();
   render();
+}
+
+/** Dice al server che il giocatore sta guardando la partita nel suo turno (niente promemoria). */
+function markSeen() {
+  if (state?.myTurn && document.visibilityState === 'visible') send({ type: 'seen' }, true);
+}
+document.addEventListener('visibilitychange', markSeen);
+
+/** Notifica dalla pagina aperta in background (se il push non è attivo su questo browser). */
+function localNotify(s) {
+  if (pushEndpoint || !('Notification' in window) || Notification.permission !== 'granted') return;
+  try {
+    const n = new Notification('Tocca a te! ⚓', {
+      body: s.lastShot ? `${s.opponent.name} ha sparato in ${LETTERS[s.lastShot.x]}${s.lastShot.y + 1}: ${describe(s.lastShot)}` : 'La partita è iniziata.',
+      tag: 'turn-' + s.id,
+    });
+    n.onclick = () => { window.focus(); n.close(); };
+  } catch {}
 }
 
 function describe(s) {
@@ -229,6 +260,8 @@ function render() {
   else if (state.phase === 'playing') setStatus(state.myTurn ? 'Tocca a te! Spara sulla flotta avversaria.' : `Turno di ${oppName}…`, state.myTurn);
   else setStatus(state.winner === 'me' ? 'Hai vinto! 🎉' : `Ha vinto ${oppName}.`);
 
+  renderNotify();
+
   $('finished').hidden = state.phase !== 'finished';
   $('finished-text').textContent = state.winner === 'me' ? 'Hai vinto! Tutta la flotta avversaria è affondata.' : `Hai perso: ${oppName} ha affondato la tua flotta.`;
 }
@@ -268,9 +301,77 @@ document.addEventListener('keydown', (e) => {
   if ((e.key === 'r' || e.key === 'R') && placing() && document.activeElement?.tagName !== 'INPUT') { dir = dir === 'h' ? 'v' : 'h'; render(); }
 });
 
+// ---------- Notifiche ----------
+const pushSupported = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+
+function renderNotify() {
+  const st = state.settings || { email: '', pushEndpoints: [] };
+  const pushOn = !!pushEndpoint && st.pushEndpoints.includes(pushEndpoint);
+  const localOn = 'Notification' in window && Notification.permission === 'granted';
+  const btn = $('btn-push');
+  if (!('Notification' in window)) { btn.hidden = true; $('push-status').textContent = 'Questo browser non supporta le notifiche.'; }
+  else if (Notification.permission === 'denied') { btn.hidden = true; $('push-status').textContent = 'Notifiche bloccate: riattivale dalle impostazioni del sito nel browser.'; }
+  else if (pushOn || (localOn && !vapidKey)) { btn.hidden = true; $('push-status').textContent = pushOn ? '✓ Notifiche attive, anche a scheda chiusa.' : '✓ Notifiche attive mentre la scheda è aperta.'; }
+  else { btn.hidden = false; $('push-status').textContent = ''; }
+  if (document.activeElement !== $('email-settings')) $('email-settings').value = st.email;
+  const parts = [];
+  if (pushOn || localOn) parts.push('browser');
+  if (st.email) parts.push('email');
+  $('notify-summary').textContent = parts.length ? '· ' + parts.join(' + ') : '· disattivati';
+}
+
+function keyBytes(b64) {
+  const s = atob(b64.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - (b64.length % 4)) % 4));
+  return Uint8Array.from(s, (c) => c.charCodeAt(0));
+}
+
+async function initPush() {
+  try { vapidKey = (await (await fetch('/api/config')).json()).vapidPublicKey; } catch {}
+  if (!pushSupported || !vapidKey) return;
+  try {
+    const reg = await navigator.serviceWorker.register('/sw.js');
+    const sub = await reg.pushManager.getSubscription();
+    if (sub) {
+      pushEndpoint = sub.endpoint;
+      // Ricollega questo browser alla partita corrente (sottoscrizione già concessa altrove).
+      const sendSub = () => send({ type: 'push-subscribe', subscription: sub.toJSON() }, true);
+      if (ws?.readyState === WebSocket.OPEN) sendSub(); else addEventListener('bn:connected', sendSub, { once: true });
+    }
+  } catch {}
+  if (state) render();
+}
+
+$('btn-push').addEventListener('click', async () => {
+  if (!('Notification' in window)) return;
+  const perm = await Notification.requestPermission();
+  if (perm !== 'granted') { render(); return; }
+  if (pushSupported && vapidKey) {
+    try {
+      const reg = await navigator.serviceWorker.register('/sw.js');
+      await navigator.serviceWorker.ready;
+      const sub = (await reg.pushManager.getSubscription()) || (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(vapidKey) }));
+      pushEndpoint = sub.endpoint;
+      send({ type: 'push-subscribe', subscription: sub.toJSON() });
+    } catch (e) {
+      toast('Non riesco ad attivare le notifiche a scheda chiusa: funzioneranno solo con la scheda aperta.');
+    }
+  }
+  render();
+});
+
+$('form-email').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const email = $('email-settings').value.trim();
+  store.set('bn:email', email);
+  send({ type: 'settings', email });
+  $('email-settings').blur();
+  toast(email ? 'Email salvata.' : 'Promemoria via email disattivati.');
+});
+
 // ---------- Avvio ----------
 buildBoard($('board-me'), onMyCell);
 buildBoard($('board-opp'), onOppCell);
 if (!gameId) show('home');
 else if (!token) show('join');
 else startGame();
+initPush();
