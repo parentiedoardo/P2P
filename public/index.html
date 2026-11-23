@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Battaglia navale</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚓</text></svg>">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="top">
+    <a href="/" class="brand">⚓ Battaglia navale</a>
+  </header>
+
+  <main>
+    <!-- Home: nuova partita -->
+    <section id="screen-home" class="card narrow" hidden>
+      <h1>Sfida un collega</h1>
+      <p class="muted">Crea una partita e manda il link a chi vuoi sfidare.</p>
+      <form id="form-create">
+        <label for="name-create">Il tuo nome</label>
+        <input id="name-create" maxlength="24" autocomplete="nickname" required placeholder="Es. Edoardo">
+        <button type="submit" class="primary">Nuova partita</button>
+      </form>
+    </section>
+
+    <!-- Ingresso in una partita esistente -->
+    <section id="screen-join" class="card narrow" hidden>
+      <h1>Sei stato sfidato!</h1>
+      <p class="muted">Scegli un nome per entrare nella partita.</p>
+      <form id="form-join">
+        <label for="name-join">Il tuo nome</label>
+        <input id="name-join" maxlength="24" autocomplete="nickname" required>
+        <button type="submit" class="primary">Entra nella partita</button>
+      </form>
+    </section>
+
+    <!-- Partita -->
+    <section id="screen-game" hidden>
+      <div id="status" class="status" role="status" aria-live="polite"></div>
+
+      <div id="share" class="card share" hidden>
+        <p>Manda questo link al collega che vuoi sfidare:</p>
+        <div class="share-row">
+          <input id="share-link" readonly>
+          <button id="btn-copy" type="button">Copia</button>
+        </div>
+      </div>
+
+      <div id="placement" class="card placement" hidden>
+        <p id="placement-hint"></p>
+        <div class="row">
+          <button id="btn-rotate" type="button">Ruota (R)</button>
+          <button id="btn-random" type="button">Casuale</button>
+          <button id="btn-clear" type="button">Svuota</button>
+          <button id="btn-ready" type="button" class="primary" disabled>Pronto!</button>
+        </div>
+      </div>
+
+      <div class="boards">
+        <div class="board-wrap">
+          <h2>La tua flotta <span id="my-name" class="muted"></span></h2>
+          <div id="board-me" class="board"></div>
+        </div>
+        <div class="board-wrap" id="wrap-opp">
+          <h2>Flotta di <span id="opp-name">…</span> <span id="opp-online" class="dot" title="Non connesso"></span></h2>
+          <div id="board-opp" class="board"></div>
+        </div>
+      </div>
+
+      <div id="finished" class="card narrow center" hidden>
+        <p id="finished-text" class="big"></p>
+        <a href="/" class="button primary">Nuova partita</a>
+      </div>
+    </section>
+
+    <div id="toast" class="toast" hidden></div>
+  </main>
+
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
