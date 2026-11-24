@@ -24,3 +24,11 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           wranglerVersion: "4.166.0"
+      - name: Verifica che il sito risponda
+        run: |
+          URL=https://battaglia-navale.parentiedoardo.workers.dev
+          sleep 5
+          curl -fsS "$URL/" | grep -q "Battaglia navale"
+          curl -fsS "$URL/api/config" | grep -q vapidPublicKey
+          curl -fsS -X POST "$URL/api/games" -H 'content-type: application/json' -d '{"name":"Verifica"}' | grep -q gameId
+          echo "Sito online: $URL"
