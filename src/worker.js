@@ -1,6 +1,6 @@
 import { DurableObject } from 'cloudflare:workers';
 import * as E from '../public/engine.js';
-import { sendPush } from './webpush.js';
+import { sendPush, b64urlEncode } from './webpush.js';
 import { boardImage, reminderContent, sendEmail, describeShot } from './notify.js';
 
 const ALPHABET = 'abcdefghjkmnpqrstuvwxyz23456789';
@@ -8,6 +8,17 @@ const ALPHABET = 'abcdefghjkmnpqrstuvwxyz23456789';
 function randomId(len) {
   const bytes = crypto.getRandomValues(new Uint8Array(len));
   return Array.from(bytes, (b) => ALPHABET[b % ALPHABET.length]).join('');
+}
+
+/**
+ * Chiavi VAPID: dalle variabili d'ambiente se presenti, altrimenti generate una volta
+ * e conservate in un Durable Object dedicato (così non serve configurarle a mano).
+ */
+async function getVapid(env) {
+  if (env.VAPID_PUBLIC_KEY && env.VAPID_PRIVATE_KEY) {
+    return { publicKey: env.VAPID_PUBLIC_KEY, privateKey: env.VAPID_PRIVATE_KEY };
+  }
+  return env.GAME.get(env.GAME.idFromName('__config__')).vapidKeys();
 }
 
 const json = (data, status = 200) =>
@@ -30,7 +41,7 @@ export default {
     if (!url.pathname.startsWith('/api/')) return env.ASSETS.fetch(request);
 
     if (url.pathname === '/api/config') {
-      return json({ vapidPublicKey: env.VAPID_PUBLIC_KEY || null });
+      return json({ vapidPublicKey: (await getVapid(env)).publicKey });
     }
 
     // POST /api/games -> nuova partita
@@ -67,6 +78,20 @@ export default {
 export class GameRoom extends DurableObject {
   get reminderMs() {
     return Number(this.env.REMINDER_MINUTES ?? 5) * 60_000;
+  }
+
+  /** Usato solo dall'oggetto '__config__'. */
+  async vapidKeys() {
+    let keys = await this.ctx.storage.get('vapid');
+    if (!keys) {
+      const kp = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign', 'verify']);
+      keys = {
+        publicKey: b64urlEncode(await crypto.subtle.exportKey('raw', kp.publicKey)),
+        privateKey: (await crypto.subtle.exportKey('jwk', kp.privateKey)).d,
+      };
+      await this.ctx.storage.put('vapid', keys);
+    }
+    return keys;
   }
 
   async load() {
@@ -235,12 +260,8 @@ export class GameRoom extends DurableObject {
 
   async push(idx, { title, body }) {
     const p = this.game.players[idx];
-    if (!p.push.length || !this.env.VAPID_PUBLIC_KEY || !this.env.VAPID_PRIVATE_KEY) return;
-    const vapid = {
-      publicKey: this.env.VAPID_PUBLIC_KEY,
-      privateKey: this.env.VAPID_PRIVATE_KEY,
-      subject: this.env.VAPID_SUBJECT || this.game.origin,
-    };
+    if (!p.push.length) return;
+    const vapid = { ...(await getVapid(this.env)), subject: this.env.VAPID_SUBJECT || this.game.origin };
     const data = { title, body, url: `/?g=${this.game.id}`, tag: 'turn-' + this.game.id };
     const results = await Promise.all(p.push.map((s) => sendPush(s, data, vapid)));
     const alive = p.push.filter((_, i) => results[i] !== 'gone');

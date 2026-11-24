@@ -40,19 +40,25 @@ Per provare i promemoria più in fretta, crea `.dev.vars` con `REMINDER_MINUTES=
 ## Configurazione
 | Variabile | A cosa serve | Obbligatoria |
 |---|---|---|
-| `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` | Notifiche push a scheda chiusa. Generale con `node scripts/vapid-keys.mjs` | Per il push |
-| `VAPID_SUBJECT` | Contatto per i servizi push, es. `mailto:tu@dominio.it` | Per il push |
+| `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` | Chiavi per le notifiche push. Se mancano, il sito le genera da solo al primo uso e le conserva | No |
+| `VAPID_SUBJECT` | Contatto per i servizi push, es. `mailto:tu@dominio.it` (predefinito: l'indirizzo del sito) | No |
 | `RESEND_API_KEY` | Invio email con [Resend](https://resend.com) (piano gratuito) | Per le email |
 | `EMAIL_FROM` | Mittente, es. `Battaglia navale <noreply@tuodominio.it>` (dominio verificato su Resend) | Per le email |
 | `REMINDER_MINUTES` | Minuti prima del promemoria (predefinito 5) | No |
 
 Online si impostano con `npx wrangler secret put NOME`.
 
-## Pubblicazione
+## Pubblicazione automatica
+Ogni push su `main` esegue i test e pubblica il sito con GitHub Actions (`.github/workflows/deploy.yml`).
+Servono due segreti del repository (Settings → Secrets and variables → Actions):
+- `CLOUDFLARE_API_TOKEN`: token Cloudflare creato dal modello "Edit Cloudflare Workers"
+- `CLOUDFLARE_ACCOUNT_ID`: l'ID account, visibile nella home della dashboard Cloudflare
+
+## Pubblicazione manuale
 Serve un account Cloudflare gratuito.
 ```bash
 npx wrangler login
 npm run deploy
-npx wrangler secret put VAPID_PUBLIC_KEY   # e le altre variabili sopra
+npx wrangler secret put RESEND_API_KEY     # e le altre variabili sopra, se servono
 ```
 Il sito sarà su `https://battaglia-navale.<tuo-sottodominio>.workers.dev`.
