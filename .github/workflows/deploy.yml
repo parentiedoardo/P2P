@@ -26,7 +26,7 @@ jobs:
           wranglerVersion: "4.166.0"
       - name: Verifica che il sito risponda
         run: |
-          URL=https://battaglia-navale.parentiedoardo.workers.dev
+          URL=https://p2p.parentiedoardo.workers.dev
           sleep 5
           curl -fsS "$URL/" | grep -q "Battaglia navale"
           curl -fsS "$URL/api/config" | grep -q vapidPublicKey

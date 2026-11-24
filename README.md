@@ -61,4 +61,4 @@ npx wrangler login
 npm run deploy
 npx wrangler secret put RESEND_API_KEY     # e le altre variabili sopra, se servono
 ```
-Il sito sarà su `https://battaglia-navale.<tuo-sottodominio>.workers.dev`.
+Il sito sarà su `https://p2p.<tuo-sottodominio>.workers.dev`.
