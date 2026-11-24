@@ -1,4 +1,5 @@
 import { SIZE, FLEET, SHIP_NAMES, fits, randomFleet, shipCells, validateFleet } from '/engine.js';
+import { toggleStealth, isStealth, setStealthTurn, setTitle } from '/stealth.js';
 
 const $ = (id) => document.getElementById(id);
 const LETTERS = 'ABCDEFGHIJ';
@@ -127,7 +128,8 @@ function onState(next) {
   if (next.lastShot?.byMe && key(next) !== key(prev)) {
     toast(`${LETTERS[next.lastShot.x]}${next.lastShot.y + 1}: ${describe(next.lastShot)}`);
   }
-  document.title = next.myTurn ? '🔴 Tocca a te! · Battaglia navale' : 'Battaglia navale';
+  setTitle(next.myTurn ? '🔴 Tocca a te! · Battaglia navale' : 'Battaglia navale');
+  setStealthTurn(next.myTurn);
   if (prev && !prev.myTurn && next.myTurn && document.visibilityState !== 'visible') localNotify(next);
   markSeen();
   render();
@@ -141,7 +143,7 @@ document.addEventListener('visibilitychange', markSeen);
 
 /** Notifica dalla pagina aperta in background (se il push non è attivo su questo browser). */
 function localNotify(s) {
-  if (pushEndpoint || !('Notification' in window) || Notification.permission !== 'granted') return;
+  if (isStealth() || pushEndpoint || !('Notification' in window) || Notification.permission !== 'granted') return;
   try {
     const n = new Notification('Tocca a te! ⚓', {
       body: s.lastShot ? `${s.opponent.name} ha sparato in ${LETTERS[s.lastShot.x]}${s.lastShot.y + 1}: ${describe(s.lastShot)}` : 'La partita è iniziata.',
@@ -367,6 +369,16 @@ $('form-email').addEventListener('submit', (e) => {
   $('email-settings').blur();
   toast(email ? 'Email salvata.' : 'Promemoria via email disattivati.');
 });
+
+// ---------- Tema e modalità discreta ----------
+const themeSelect = $('theme');
+themeSelect.value = document.documentElement.dataset.theme || 'mare';
+themeSelect.addEventListener('change', () => {
+  document.documentElement.dataset.theme = themeSelect.value;
+  store.set('bn:theme', themeSelect.value);
+  themeSelect.blur();
+});
+$('btn-stealth').addEventListener('click', (e) => { e.currentTarget.blur(); toggleStealth(true); });
 
 // ---------- Avvio ----------
 buildBoard($('board-me'), onMyCell);

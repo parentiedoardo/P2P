@@ -6,10 +6,24 @@
   <title>Battaglia navale</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚓</text></svg>">
   <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/themes.css">
+  <link rel="stylesheet" href="/stealth.css">
+  <script>try { document.documentElement.dataset.theme = localStorage.getItem('bn:theme') || 'mare'; } catch { document.documentElement.dataset.theme = 'mare'; }</script>
 </head>
 <body>
   <header class="top">
     <a href="/" class="brand">⚓ Battaglia navale</a>
+    <div class="top-tools">
+      <label for="theme" class="sr-only">Tema grafico</label>
+      <select id="theme" title="Tema grafico">
+        <option value="mare">🌊 Mare</option>
+        <option value="excel">📊 Foglio di calcolo</option>
+        <option value="tecnico">📐 Disegno tecnico</option>
+        <option value="quaderno">✏️ Quaderno a quadretti</option>
+        <option value="sonar">📡 Sonar</option>
+      </select>
+      <button id="btn-stealth" type="button" title="Nasconde il gioco dietro un foglio di calcolo. Scorciatoia: barra spaziatrice">🙈 Modalità discreta <kbd>Spazio</kbd></button>
+    </div>
   </header>
 
   <main>
@@ -96,6 +110,8 @@
 
     <div id="toast" class="toast" hidden></div>
   </main>
+
+  <div id="stealth" class="stealth" hidden aria-hidden="true"></div>
 
   <script type="module" src="/app.js"></script>
 </body>

@@ -1,0 +1,183 @@
+/* Temi grafici alternativi. Il tema "mare" è quello di style.css. */
+
+/* ============ 📊 Foglio di calcolo ============ */
+:root[data-theme="excel"] {
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --text: #1f1f1f;
+  --muted: #616161;
+  --border: #d4d4d4;
+  --accent: #217346;
+  --accent-text: #ffffff;
+  --sea: #ffffff;
+  --sea-hover: #e8f2ec;
+  --ship: #bfbfbf;
+  --miss: #7f7f7f;
+  --hit: #f8cbad;
+  --sunk: #c00000;
+  --ok: #217346;
+  --preview: #c6efce;
+  --bad: #ffc7ce;
+}
+[data-theme="excel"] body { font-family: Calibri, Carlito, "Segoe UI", Arial, sans-serif; font-size: 15px; }
+[data-theme="excel"] .top { background: #217346; border: 0; }
+[data-theme="excel"] .top .brand { color: #fff; }
+[data-theme="excel"] .top select, [data-theme="excel"] .top button { background: #fff; color: #1f1f1f; border-radius: 2px; }
+[data-theme="excel"] .card, [data-theme="excel"] .status, [data-theme="excel"] input,
+[data-theme="excel"] button, [data-theme="excel"] .button { border-radius: 2px; }
+[data-theme="excel"] .card, [data-theme="excel"] .status { border-color: #c6c6c6; box-shadow: none; }
+[data-theme="excel"] .status.turn { background: #c6efce; color: #006100; box-shadow: none; border-color: #a9d08e; }
+[data-theme="excel"] .board { gap: 0; border-top: 1px solid #c6c6c6; border-left: 1px solid #c6c6c6; }
+[data-theme="excel"] .label { background: #f3f3f3; border-right: 1px solid #c6c6c6; border-bottom: 1px solid #c6c6c6; color: #444; font-size: 0.8rem; }
+[data-theme="excel"] .cell { border-radius: 0; border-right: 1px solid #d4d4d4; border-bottom: 1px solid #d4d4d4; }
+[data-theme="excel"] .cell.hit { background: var(--hit); }
+[data-theme="excel"] .cell.hit::after { content: "X"; color: #c00000; font-weight: 700; }
+[data-theme="excel"] .cell.sunk { background: #c00000; }
+[data-theme="excel"] .cell.sunk::after { color: #fff; }
+[data-theme="excel"] .cell.miss::after { content: "0"; inset: 0; border-radius: 0; background: none; color: #7f7f7f; font-size: 0.8rem; display: grid; place-items: center; }
+[data-theme="excel"] .board.clickable .cell:not(.shot):hover { outline: 2px solid #217346; background: #fff; }
+[data-theme="excel"] .cell.last { outline: 2px solid #217346; }
+[data-theme="excel"] h2 { font-weight: 600; color: #217346; }
+
+/* ============ 📐 Disegno tecnico ============ */
+:root[data-theme="tecnico"] {
+  --bg: #e9e9e6;
+  --surface: #fdfdfb;
+  --text: #111111;
+  --muted: #555555;
+  --border: #111111;
+  --accent: #111111;
+  --accent-text: #fdfdfb;
+  --sea: #fdfdfb;
+  --sea-hover: #ecece8;
+  --ship: #111111;
+  --miss: #111111;
+  --hit: #111111;
+  --sunk: #111111;
+  --ok: #111111;
+  --preview: #cfcfcf;
+  --bad: #f1c9c9;
+}
+[data-theme="tecnico"] body { font-family: "Osifont", "ISOCPEUR", ui-monospace, "Consolas", "Courier New", monospace; letter-spacing: 0.02em; }
+[data-theme="tecnico"] h1, [data-theme="tecnico"] h2, [data-theme="tecnico"] .status, [data-theme="tecnico"] .brand { text-transform: uppercase; }
+[data-theme="tecnico"] .top { border-bottom: 2px solid #111; }
+[data-theme="tecnico"] .card, [data-theme="tecnico"] .status, [data-theme="tecnico"] input,
+[data-theme="tecnico"] button, [data-theme="tecnico"] .button { border-radius: 0; border-width: 1px; }
+[data-theme="tecnico"] main { background: var(--surface); border: 2px solid #111; outline: 1px solid #111; outline-offset: 4px; margin-top: 16px; margin-bottom: 24px; }
+[data-theme="tecnico"] .card, [data-theme="tecnico"] .status { box-shadow: none; }
+[data-theme="tecnico"] .status.turn { box-shadow: none; border-width: 3px; }
+[data-theme="tecnico"] .board-wrap { border: 1px solid #111; padding: 10px; position: relative; }
+[data-theme="tecnico"] .board-wrap::after {
+  content: "SCALA 1:1000 · QUOTE IN MIGLIA NAUTICHE"; display: block; margin-top: 8px;
+  font-size: 0.65rem; color: var(--muted); border-top: 1px solid #111; padding-top: 4px;
+}
+[data-theme="tecnico"] .board { gap: 0; border-top: 1px solid #111; border-left: 1px solid #111; }
+[data-theme="tecnico"] .label { font-size: 0.7rem; }
+[data-theme="tecnico"] .cell { border-radius: 0; border-right: 1px solid #111; border-bottom: 1px solid #111; }
+[data-theme="tecnico"] .cell.ship { background: repeating-linear-gradient(45deg, #111 0 1px, transparent 1px 5px); }
+[data-theme="tecnico"] .cell.hit { background: var(--surface); }
+[data-theme="tecnico"] .cell.hit::after {
+  content: ""; inset: 0;
+  background: linear-gradient(45deg, transparent 46%, #111 46% 54%, transparent 54%), linear-gradient(-45deg, transparent 46%, #111 46% 54%, transparent 54%);
+}
+[data-theme="tecnico"] .cell.ship.hit { background: repeating-linear-gradient(45deg, #111 0 1px, transparent 1px 5px); }
+[data-theme="tecnico"] .cell.sunk { background: #111; }
+[data-theme="tecnico"] .cell.sunk::after { filter: invert(1); }
+[data-theme="tecnico"] .cell.miss::after { inset: 42%; background: #111; }
+[data-theme="tecnico"] .cell.last { outline: 2px dashed #111; outline-offset: -3px; }
+[data-theme="tecnico"] .board.clickable .cell:not(.shot):hover { outline: 1px dashed #111; }
+[data-theme="tecnico"] .dot.on { background: #111; }
+
+/* ============ ✏️ Quaderno a quadretti ============ */
+:root[data-theme="quaderno"] {
+  --bg: #ffffff;
+  --surface: transparent;
+  --text: #1a1a1a;
+  --muted: #555555;
+  --border: #1a1a1a;
+  --accent: #1a1a1a;
+  --accent-text: #ffffff;
+  --sea: transparent;
+  --sea-hover: rgba(0, 0, 0, 0.06);
+  --ship: #1a1a1a;
+  --miss: #1a1a1a;
+  --hit: #1a1a1a;
+  --sunk: #1a1a1a;
+  --ok: #1a1a1a;
+  --preview: rgba(0, 0, 0, 0.18);
+  --bad: rgba(0, 0, 0, 0.06);
+}
+[data-theme="quaderno"] body {
+  font-family: "Segoe Print", "Bradley Hand", "Chalkboard SE", "Comic Sans MS", "Comic Neue", cursive;
+  background-color: #fff;
+  background-image:
+    linear-gradient(#c9d3dc 1px, transparent 1px),
+    linear-gradient(90deg, #c9d3dc 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+[data-theme="quaderno"] .top { background: transparent; border-bottom: 2px solid #1a1a1a; }
+[data-theme="quaderno"] .card, [data-theme="quaderno"] .status { background: rgba(255, 255, 255, 0.6); border: 2px solid #1a1a1a; border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px; box-shadow: none; }
+[data-theme="quaderno"] .status.turn { box-shadow: none; text-decoration: underline wavy; }
+[data-theme="quaderno"] input, [data-theme="quaderno"] select { background: #fff !important; }
+[data-theme="quaderno"] button, [data-theme="quaderno"] .button { border: 2px solid #1a1a1a; border-radius: 15px 225px 15px 255px / 255px 15px 225px 15px; background: #fff; }
+[data-theme="quaderno"] .primary { background: #1a1a1a; color: #fff; }
+[data-theme="quaderno"] .board { gap: 0; border: 2px solid #1a1a1a; background: rgba(255, 255, 255, 0.4); }
+[data-theme="quaderno"] .label { font-size: 0.85rem; color: #1a1a1a; }
+[data-theme="quaderno"] .cell { border-radius: 0; border-right: 1px solid #9aa6b2; border-bottom: 1px solid #9aa6b2; }
+[data-theme="quaderno"] .cell.ship { background: repeating-linear-gradient(-35deg, #1a1a1a 0 2px, transparent 2px 6px); }
+[data-theme="quaderno"] .cell.hit { background-color: transparent; }
+[data-theme="quaderno"] .cell.hit::after { content: "✗"; color: #1a1a1a; font-size: 1.3rem; font-weight: 700; }
+[data-theme="quaderno"] .cell.sunk { background: #1a1a1a; }
+[data-theme="quaderno"] .cell.sunk::after { color: #fff; }
+[data-theme="quaderno"] .cell.miss::after { content: "•"; inset: 0; background: none; color: #1a1a1a; font-size: 1.2rem; display: grid; place-items: center; border-radius: 0; }
+[data-theme="quaderno"] .cell.last { outline: 2px solid #1a1a1a; border-radius: 50%; }
+[data-theme="quaderno"] .toast { background: #1a1a1a; color: #fff; }
+[data-theme="quaderno"] .dot.on { background: #1a1a1a; }
+
+/* ============ 📡 Sonar ============ */
+:root[data-theme="sonar"] {
+  --bg: #020a05;
+  --surface: #04140a;
+  --text: #4dff88;
+  --muted: #2a9e55;
+  --border: #0f4d27;
+  --accent: #4dff88;
+  --accent-text: #021006;
+  --sea: #062512;
+  --sea-hover: #0b3b1d;
+  --ship: #1f8f4a;
+  --miss: #2a9e55;
+  --hit: #ff4d4d;
+  --sunk: #ffb347;
+  --ok: #4dff88;
+  --preview: #1f8f4a;
+  --bad: #5a1a1a;
+}
+[data-theme="sonar"] body {
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  text-shadow: 0 0 6px rgba(77, 255, 136, 0.45);
+  background: radial-gradient(ellipse at center, #062512 0%, #020a05 70%);
+  min-height: 100vh;
+}
+[data-theme="sonar"] .card, [data-theme="sonar"] .status { box-shadow: 0 0 12px rgba(77, 255, 136, 0.12) inset; }
+[data-theme="sonar"] .status.turn { box-shadow: 0 0 0 2px var(--ok) inset, 0 0 18px rgba(77, 255, 136, 0.35); animation: sonar-blink 1.6s ease-in-out infinite; }
+[data-theme="sonar"] .board { position: relative; }
+[data-theme="sonar"] .board { border-radius: 6px; padding: 4px; background: var(--surface); box-shadow: 0 0 20px rgba(77, 255, 136, 0.15); }
+[data-theme="sonar"] .cell { border-radius: 2px; box-shadow: 0 0 0 1px rgba(77, 255, 136, 0.08) inset; }
+[data-theme="sonar"] .cell.hit { box-shadow: 0 0 10px #ff4d4d; }
+[data-theme="sonar"] .cell.sunk { box-shadow: 0 0 10px #ffb347; }
+[data-theme="sonar"] .cell.miss::after { background: var(--miss); box-shadow: 0 0 6px var(--miss); }
+[data-theme="sonar"] #board-opp { overflow: hidden; }
+[data-theme="sonar"] #board-opp::before {
+  content: ""; position: absolute; inset: -50%; pointer-events: none; z-index: 1;
+  background: conic-gradient(from 0deg, rgba(77, 255, 136, 0.28), transparent 18%);
+  animation: sonar-sweep 4s linear infinite;
+}
+[data-theme="sonar"] .top { background: #04140a; }
+[data-theme="sonar"] .toast { background: #4dff88; color: #021006; text-shadow: none; }
+[data-theme="sonar"] input, [data-theme="sonar"] select { background: #020a05; }
+@keyframes sonar-sweep { to { transform: rotate(360deg); } }
+@keyframes sonar-blink { 50% { box-shadow: 0 0 0 2px var(--ok) inset, 0 0 4px rgba(77, 255, 136, 0.1); } }
+@media (prefers-reduced-motion: reduce) {
+  [data-theme="sonar"] #board-opp::before, [data-theme="sonar"] .status.turn { animation: none; }
+}

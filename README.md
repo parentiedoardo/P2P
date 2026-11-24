@@ -10,6 +10,12 @@ Gira su Cloudflare Workers + Durable Objects (piano gratuito).
    Clic per piazzare, **R** o "Ruota" per cambiare verso, "Casuale" per fare in fretta.
 4. Si spara a turno, un colpo per turno. Vince chi affonda per primo tutta la flotta avversaria.
 
+### Temi e modalità discreta
+- Dal menu in alto scegli il tema: 🌊 Mare, 📊 Foglio di calcolo, 📐 Disegno tecnico, ✏️ Quaderno a quadretti, 📡 Sonar. Il browser lo ricorda.
+- **Barra spaziatrice** (o il pulsante 🙈): copre il gioco con un finto foglio di calcolo, anche nel titolo della scheda.
+  Si torna al gioco con Spazio, Esc o toccando il logo verde in alto a sinistra.
+  Segnale discreto: quando tocca a te, in basso a sinistra c'è scritto "Ricalcolo" invece di "Pronto".
+
 Se chiudi la scheda, riaprendo lo stesso link riprendi la partita da dove era rimasta.
 
 ## Notifiche e promemoria

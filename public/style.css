@@ -17,7 +17,7 @@
   --bad: #f2b8b5;
 }
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme]), :root[data-theme="mare"] {
     --bg: #0d1520;
     --surface: #152131;
     --text: #e6edf5;
@@ -40,7 +40,14 @@ body {
   color: var(--text);
   font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
-.top { padding: 12px 16px; border-bottom: 1px solid var(--border); background: var(--surface); }
+.top {
+  padding: 8px 16px; border-bottom: 1px solid var(--border); background: var(--surface);
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.top-tools { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+.top select { font: inherit; font-size: 0.9rem; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text); }
+.top button { font-size: 0.9rem; padding: 6px 10px; }
+kbd { font: inherit; font-size: 0.75rem; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 4px; padding: 0 4px; }
 .brand { color: var(--text); font-weight: 700; text-decoration: none; }
 main { max-width: 980px; margin: 0 auto; padding: 16px; }
 h1 { margin: 0 0 4px; font-size: 1.5rem; }
@@ -115,3 +122,5 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .notify p { margin: 12px 0; }
 .notify .row { align-items: center; }
 form.inline { margin-top: 16px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+@media (max-width: 640px) { .top kbd { display: none; } }
