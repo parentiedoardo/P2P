@@ -1,13 +1,16 @@
-// Disegna public/icon.png (icona delle notifiche).
+// Disegna public/icon.png (icona delle notifiche): quadrato verde con una X bianca.
 import { writeFileSync } from 'node:fs';
 import { Canvas } from '../src/png.js';
-const S = 192, cv = new Canvas(S, S, [31, 111, 235]);
-const cell = 36, gap = 6, o = (S - (4 * cell + 3 * gap)) / 2;
-for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) {
-  const px = o + x * (cell + gap), py = o + y * (cell + gap);
-  const ship = y === 1 && x < 3;
-  cv.rect(px, py, cell, cell, ship ? [19, 35, 58] : [220, 235, 250]);
-  if (y === 1 && x === 1) { cv.rect(px, py, cell, cell, [229, 83, 75]); cv.cross(px + 9, py + 9, cell - 18, 5, [255, 255, 255]); }
-  if (y === 3 && x === 2) cv.circle(px + cell / 2, py + cell / 2, 6, [91, 107, 128]);
+const S = 192;
+const cv = new Canvas(S, S, [29, 111, 66]);
+const W = [255, 255, 255];
+// X spessa: per ogni riga disegna i due tratti diagonali
+const m = 46, t = 30;
+for (let y = m; y < S - m; y++) {
+  const k = (y - m) / (S - 2 * m - 1);
+  const x1 = Math.round(m + k * (S - 2 * m - t));
+  const x2 = Math.round(S - m - t - k * (S - 2 * m - t));
+  cv.rect(x1, y, t, 1, W);
+  cv.rect(x2, y, t, 1, W);
 }
 writeFileSync(new URL('../public/icon.png', import.meta.url), await cv.png());

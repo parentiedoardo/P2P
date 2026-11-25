@@ -6,7 +6,12 @@ export const SIZE = 10;
 export const FLEET = [5, 4, 3, 3, 2];
 export const SHIP_NAMES = { 5: 'Portaerei', 4: 'Corazzata', 3: 'Incrociatore', 2: 'Cacciatorpediniere' };
 
-export class GameError extends Error {}
+export class GameError extends Error {
+  constructor(message, code) {
+    super(message);
+    this.code = code;
+  }
+}
 
 /** @typedef {{x:number, y:number, len:number, dir:'h'|'v'}} Ship */
 
@@ -91,20 +96,20 @@ export function cleanName(name) {
 
 /** Aggiunge un giocatore e restituisce il suo indice (0 o 1). */
 export function addPlayer(game, { token, name }) {
-  if (game.players.length >= 2) throw new GameError('La partita è già al completo.');
+  if (game.players.length >= 2) throw new GameError('La partita è già al completo.', 'game_full');
   game.players.push({ token, name: cleanName(name), ships: null, shots: [] });
   if (game.players.length === 2) game.phase = 'placing';
   return game.players.length - 1;
 }
 
 export function placeShips(game, idx, ships, now = Date.now()) {
-  if (game.phase !== 'waiting' && game.phase !== 'placing') throw new GameError('Non è il momento di posizionare le navi.');
+  if (game.phase !== 'waiting' && game.phase !== 'placing') throw new GameError('Non è il momento di posizionare le navi.', 'not_placing');
   const player = game.players[idx];
-  if (!player) throw new GameError('Giocatore sconosciuto.');
-  if (player.ships) throw new GameError('Hai già confermato la tua flotta.');
+  if (!player) throw new GameError('Giocatore sconosciuto.', 'unknown_player');
+  if (player.ships) throw new GameError('Hai già confermato la tua flotta.', 'already_ready');
   const clean = Array.isArray(ships) ? ships.map((s) => ({ x: s?.x, y: s?.y, len: s?.len, dir: s?.dir })) : ships;
   const err = validateFleet(clean);
-  if (err) throw new GameError(err);
+  if (err) throw new GameError(err, 'invalid_fleet');
   player.ships = clean;
   if (game.players.length === 2 && game.players.every((p) => p.ships)) {
     game.phase = 'playing';
@@ -126,12 +131,12 @@ function isSunk(ship, shots) {
  * Restituisce { result: 'miss'|'hit'|'sunk', len?, gameOver }.
  */
 export function fire(game, idx, x, y, now = Date.now()) {
-  if (game.phase !== 'playing') throw new GameError('La partita non è in corso.');
-  if (game.turn !== idx) throw new GameError('Non è il tuo turno.');
-  if (!inBounds(x, y)) throw new GameError('Casella non valida.');
+  if (game.phase !== 'playing') throw new GameError('La partita non è in corso.', 'not_playing');
+  if (game.turn !== idx) throw new GameError('Non è il tuo turno.', 'not_your_turn');
+  if (!inBounds(x, y)) throw new GameError('Casella non valida.', 'bad_cell');
   const me = game.players[idx];
   const opp = game.players[1 - idx];
-  if (me.shots.some((s) => s.x === x && s.y === y)) throw new GameError('Hai già sparato in questa casella.');
+  if (me.shots.some((s) => s.x === x && s.y === y)) throw new GameError('Hai già sparato in questa casella.', 'already_shot');
 
   const target = shipAt(opp.ships, x, y);
   const shot = { x, y, hit: !!target };

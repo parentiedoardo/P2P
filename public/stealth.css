@@ -1,48 +1,77 @@
 /* Finto foglio di calcolo della modalità discreta. Sempre chiaro, indipendente dal tema. */
+html.stealth-boot main, html.stealth-boot .top { visibility: hidden; }
 body.stealth-on { overflow: hidden; }
 .stealth {
   position: fixed; inset: 0; z-index: 1000; display: flex; flex-direction: column;
   background: #fff; color: #1f1f1f; font: 13px/1.3 Calibri, Carlito, "Segoe UI", Arial, sans-serif; text-shadow: none;
 }
 .stealth[hidden] { display: none; }
-.xl-title { background: #217346; color: #fff; display: flex; align-items: center; gap: 14px; padding: 6px 12px; font-size: 12.5px; }
-.xl-logo { background: #fff; color: #217346; font-weight: 700; width: 20px; height: 20px; display: grid; place-items: center; border-radius: 3px; }
-.xl-file { font-weight: 600; }
+.xl-title { background: #1d6f42; color: #fff; display: flex; align-items: center; gap: 14px; padding: 6px 12px; font-size: 12.5px; white-space: nowrap; overflow: hidden; }
+.xl-logo { width: 20px; height: 20px; cursor: pointer; flex: none; }
+.xl-file { font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
 .xl-saved { opacity: 0.8; }
 .xl-search { margin-left: auto; background: rgba(255, 255, 255, 0.18); padding: 3px 60px 3px 10px; border-radius: 4px; }
-.xl-menu { background: #217346; color: #fff; display: flex; gap: 2px; padding: 0 8px; overflow: hidden; white-space: nowrap; }
+.xl-menu { background: #1d6f42; color: #fff; display: flex; gap: 2px; padding: 0 8px; overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
 .xl-menu span { padding: 6px 10px; }
-.xl-menu span.on { background: #f3f3f3; color: #217346; border-radius: 3px 3px 0 0; font-weight: 600; }
-.xl-ribbon { background: #f3f3f3; display: flex; gap: 0; padding: 6px 4px 2px; border-bottom: 1px solid #d4d4d4; overflow: hidden; }
+.xl-menu span.on { background: #f3f3f3; color: #1d6f42; border-radius: 3px 3px 0 0; font-weight: 600; }
+.xl-ribbon { background: #f3f3f3; display: flex; padding: 6px 4px 2px; border-bottom: 1px solid #d4d4d4; overflow: hidden; }
 .xl-ribbon .grp { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 0 10px; border-right: 1px solid #d4d4d4; max-width: 170px; justify-content: center; }
 .xl-ribbon .grp.wide { max-width: 200px; }
 .xl-ribbon small { width: 100%; text-align: center; color: #666; font-size: 11px; }
 .xl-ribbon .b { min-width: 22px; height: 22px; display: inline-grid; place-items: center; border-radius: 2px; color: #333; }
 .xl-ribbon .fake-input { border: 1px solid #c6c6c6; background: #fff; padding: 1px 18px 1px 4px; font-size: 12px; }
 .xl-ribbon .fake-input.s { padding-right: 10px; }
-.xl-formula { display: flex; align-items: center; border-bottom: 1px solid #d4d4d4; height: 26px; }
-.xl-name { width: 80px; padding: 0 6px; border-right: 1px solid #d4d4d4; height: 100%; display: flex; align-items: center; }
-.xl-fx { width: 36px; text-align: center; color: #666; font-style: italic; border-right: 1px solid #d4d4d4; }
+.xl-formula { display: flex; align-items: center; border-bottom: 1px solid #d4d4d4; height: 26px; flex: none; }
+.xl-name { width: 70px; flex: none; padding: 0 6px; border-right: 1px solid #d4d4d4; height: 100%; display: flex; align-items: center; }
+.xl-fx { width: 32px; flex: none; text-align: center; color: #666; font-style: italic; border-right: 1px solid #d4d4d4; }
 .xl-f { padding: 0 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.xl-grid-wrap { flex: 1; overflow: auto; }
-.xl-grid { border-collapse: collapse; table-layout: fixed; }
-.xl-grid th { background: #f3f3f3; color: #444; font-weight: 400; border: 1px solid #d4d4d4; height: 20px; position: sticky; top: 0; z-index: 1; min-width: 90px; }
-.xl-grid th.corner { min-width: 40px; width: 40px; left: 0; z-index: 2; }
-.xl-grid th.rowh { position: sticky; left: 0; min-width: 40px; width: 40px; z-index: 1; }
-.xl-grid tr:first-child th:nth-child(3) { min-width: 180px; }
-.xl-grid td { border: 1px solid #e1e1e1; height: 20px; padding: 0 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; cursor: cell; }
-.xl-grid td.sel { outline: 2px solid #217346; outline-offset: -2px; }
+.xl-grid-wrap { flex: 1; overflow: auto; -webkit-overflow-scrolling: touch; }
+.xl-grid { border-collapse: collapse; table-layout: fixed; width: max-content; }
+.xl-grid col.c-rowh { width: 40px; }
+.xl-grid col.c-std { width: 92px; }
+.xl-grid col.c-wide { width: 190px; }
+.xl-grid col.c-game { width: 24px; }
+.xl-grid th { background: #f3f3f3; color: #444; font-weight: 400; border: 1px solid #d4d4d4; height: 20px; position: sticky; top: 0; z-index: 2; }
+.xl-grid th.corner { left: 0; z-index: 3; }
+.xl-grid th.rowh { position: sticky; left: 0; z-index: 1; }
+.xl-grid td { border: 1px solid #e1e1e1; height: 20px; padding: 0 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: cell; position: relative; }
+.xl-grid td.sel { outline: 2px solid #1d6f42; outline-offset: -2px; }
 .xl-grid td.num { text-align: right; font-variant-numeric: tabular-nums; }
 .xl-grid td.center { text-align: center; }
 .xl-grid td.neg { color: #c00000; }
-.xl-grid td.head { background: #217346; color: #fff; font-weight: 600; }
+.xl-grid td.head { background: #1d6f42; color: #fff; font-weight: 600; }
 .xl-grid td.title { font-size: 16px; font-weight: 700; overflow: visible; }
-.xl-grid td.muted { color: #666; overflow: visible; }
+.xl-grid td.muted, .xl-grid td.muted-strong { overflow: visible; }
+.xl-grid td.muted { color: #666; }
+.xl-grid td.hint { color: #9a9a9a; font-style: italic; overflow: visible; }
 .xl-grid td.total { font-weight: 700; border-top: 2px solid #1f1f1f; }
 .xl-grid td.bad { background: #ffc7ce; color: #9c0006; }
 .xl-grid td.good { background: #c6efce; color: #006100; }
-.xl-tabs { display: flex; background: #f3f3f3; border-top: 1px solid #d4d4d4; white-space: nowrap; overflow: hidden; }
-.xl-tabs span { padding: 4px 14px; color: #444; }
-.xl-tabs span.on { background: #fff; color: #217346; font-weight: 600; border-bottom: 2px solid #217346; }
-.xl-status { display: flex; justify-content: space-between; background: #f3f3f3; color: #444; padding: 3px 12px; font-size: 12px; border-top: 1px solid #d4d4d4; white-space: pre; }
-@media (max-width: 640px) { .xl-ribbon, .xl-search { display: none; } }
+.xl-edit { position: absolute; inset: 0; width: 100%; border: 0; outline: 2px solid #1d6f42; outline-offset: -2px; padding: 0 4px; font: inherit; background: #fff; color: inherit; }
+
+/* Campo da gioco nel foglio Note: sembra una tabella con formattazione condizionale. */
+.xl-grid td.g-title { font-weight: 700; overflow: visible; padding: 0 2px; }
+.xl-grid td.g-head { background: #f3f3f3; color: #444; text-align: center; font-size: 11px; padding: 0; }
+.xl-grid td.g-sea { padding: 0; text-align: center; font-size: 11px; }
+.xl-grid td.g-click { cursor: pointer; }
+.xl-grid td.g-click:hover { background: #e2efda; }
+.xl-grid td.g-ship { background: #d9d9d9; }
+.xl-grid td.g-hit { background: #f8cbad; color: #c00000; font-weight: 700; }
+.xl-grid td.g-miss { color: #8c8c8c; }
+.xl-grid td.g-sunk { background: #c00000; color: #fff; font-weight: 700; }
+.xl-grid td.g-last { outline: 2px solid #1d6f42; outline-offset: -2px; }
+.xl-grid td.g-cmd { background: #f3f3f3; border: 1px solid #b7b7b7; text-align: center; cursor: pointer; overflow: visible; padding: 0 6px; }
+.xl-grid td.g-cmd:hover { background: #e2efda; }
+.xl-grid td.g-primary { background: #1d6f42; color: #fff; }
+.xl-grid td.g-status { overflow: visible; color: #444; padding: 0 2px; }
+.xl-grid td.g-turn { color: #1d6f42; font-weight: 700; }
+
+.xl-tabs { display: flex; background: #f3f3f3; border-top: 1px solid #d4d4d4; white-space: nowrap; overflow-x: auto; scrollbar-width: none; flex: none; }
+.xl-tabs span { padding: 5px 14px; color: #444; cursor: pointer; }
+.xl-tabs span.nav { cursor: default; }
+.xl-tabs span.on { background: #fff; color: #1d6f42; font-weight: 600; border-bottom: 2px solid #1d6f42; }
+.xl-status { display: flex; justify-content: space-between; gap: 12px; background: #f3f3f3; color: #444; padding: 3px 12px; font-size: 12px; border-top: 1px solid #d4d4d4; white-space: pre; flex: none; }
+@media (max-width: 640px) {
+  .xl-ribbon, .xl-search, .xl-qa, .xl-zoom { display: none; }
+  .xl-grid col.c-wide { width: 150px; }
+}

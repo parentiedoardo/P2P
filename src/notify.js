@@ -53,27 +53,56 @@ export function boardImage(view) {
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const LETTERS = 'ABCDEFGHIJ';
 
-export function describeShot(s) {
+const TEXT = {
+  it: {
+    miss: 'acqua', hit: 'colpito', sunk: 'colpito e affondato',
+    subject: (o) => `Tocca a te · ${o} · P2P`,
+    last: (o, d) => `Ultimo colpo di ${o}: ${d}.`,
+    text: (p, o, shot, link) => `Ciao ${p}, è il tuo turno nella sessione con ${o}. ${shot}\n\nTorna alla sessione: ${link}`,
+    heading: (p) => `Tocca a te, ${p}`,
+    waiting: (o) => `${o} aspetta la tua mossa.`,
+    alt: 'Situazione della sessione', yours: 'La tua flotta', theirs: (o) => `Flotta di ${o}`, button: 'Torna alla sessione',
+    pushTurn: 'Tocca a te', pushShot: (o, d) => `${o} ha sparato in ${d}.`, pushStart: (o) => `La sessione con ${o} è iniziata.`,
+    pushWait: 'Ti stanno aspettando', pushWaitBody: (o) => `${o} aspetta la tua mossa da 5 minuti.`,
+    pushEnd: 'Sessione finita', pushEndBody: (o) => `Ha vinto ${o}.`,
+  },
+  en: {
+    miss: 'miss', hit: 'hit', sunk: 'hit and sunk',
+    subject: (o) => `Your turn · ${o} · P2P`,
+    last: (o, d) => `${o}'s last shot: ${d}.`,
+    text: (p, o, shot, link) => `Hi ${p}, it's your turn in the session with ${o}. ${shot}\n\nBack to the session: ${link}`,
+    heading: (p) => `Your turn, ${p}`,
+    waiting: (o) => `${o} is waiting for your move.`,
+    alt: 'Current board', yours: 'Your fleet', theirs: (o) => `${o}'s fleet`, button: 'Back to the session',
+    pushTurn: 'Your turn', pushShot: (o, d) => `${o} fired at ${d}.`, pushStart: (o) => `The session with ${o} has started.`,
+    pushWait: 'Someone is waiting', pushWaitBody: (o) => `${o} has been waiting for your move for 5 minutes.`,
+    pushEnd: 'Session over', pushEndBody: (o) => `${o} won.`,
+  },
+};
+
+export const texts = (lang) => TEXT[lang] || TEXT.it;
+
+export function describeShot(s, lang = 'it') {
   if (!s) return '';
+  const T = texts(lang);
   const where = `${LETTERS[s.x]}${s.y + 1}`;
-  if (s.result === 'miss') return `${where}: acqua`;
-  if (s.result === 'hit') return `${where}: colpito`;
-  return `${where}: colpito e affondato`;
+  return `${where}: ${T[s.result] || T.miss}`;
 }
 
 /** Contenuto del promemoria "tocca a te". */
-export function reminderContent({ playerName, opponentName, lastShot, link, imageUrl }) {
-  const subject = `Tocca a te contro ${opponentName} · Battaglia navale`;
-  const shot = lastShot ? `Ultimo colpo di ${opponentName}: ${describeShot(lastShot)}.` : '';
-  const text = `Ciao ${playerName}, è il tuo turno nella partita contro ${opponentName}. ${shot}\n\nTorna alla partita: ${link}`;
-  const html = `<!doctype html><html><body style="margin:0;background:#f3f6fa;font-family:Segoe UI,Arial,sans-serif;color:#13233a">
+export function reminderContent({ playerName, opponentName, lastShot, link, imageUrl, lang = 'it' }) {
+  const T = texts(lang);
+  const subject = T.subject(opponentName);
+  const shot = lastShot ? T.last(opponentName, describeShot(lastShot, lang)) : '';
+  const text = T.text(playerName, opponentName, shot, link);
+  const html = `<!doctype html><html><body style="margin:0;background:#f4f5f7;font-family:Segoe UI,Arial,sans-serif;color:#24292f">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:24px 12px">
-<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;background:#fff;border:1px solid #d5dde8;border-radius:12px">
-<tr><td style="padding:20px 24px 8px;font-size:20px;font-weight:700">⚓ Tocca a te, ${esc(playerName)}!</td></tr>
-<tr><td style="padding:0 24px 12px;font-size:15px;line-height:1.5">${esc(opponentName)} aspetta la tua mossa. ${esc(shot)}</td></tr>
-<tr><td style="padding:0 24px"><img src="${esc(imageUrl)}" width="552" alt="Situazione della partita" style="display:block;width:100%;height:auto;border:0"></td></tr>
-<tr><td style="padding:4px 24px 0;font-size:12px;color:#5b6b80"><table role="presentation" width="100%"><tr><td width="50%">La tua flotta</td><td>Flotta di ${esc(opponentName)}</td></tr></table></td></tr>
-<tr><td align="center" style="padding:20px 24px 24px"><a href="${esc(link)}" style="background:#1f6feb;color:#fff;text-decoration:none;font-weight:600;padding:12px 22px;border-radius:8px;display:inline-block">Torna alla partita</a></td></tr>
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;background:#fff;border:1px solid #d0d7de;border-radius:8px">
+<tr><td style="padding:20px 24px 8px;font-size:20px;font-weight:700">${esc(T.heading(playerName))}</td></tr>
+<tr><td style="padding:0 24px 12px;font-size:15px;line-height:1.5">${esc(T.waiting(opponentName))} ${esc(shot)}</td></tr>
+<tr><td style="padding:0 24px"><img src="${esc(imageUrl)}" width="552" alt="${esc(T.alt)}" style="display:block;width:100%;height:auto;border:0"></td></tr>
+<tr><td style="padding:4px 24px 0;font-size:12px;color:#6a737d"><table role="presentation" width="100%"><tr><td width="50%">${esc(T.yours)}</td><td>${esc(T.theirs(opponentName))}</td></tr></table></td></tr>
+<tr><td align="center" style="padding:20px 24px 24px"><a href="${esc(link)}" style="background:#1d6f42;color:#fff;text-decoration:none;font-weight:600;padding:12px 22px;border-radius:6px;display:inline-block">${esc(T.button)}</a></td></tr>
 </table></td></tr></table></body></html>`;
   return { subject, text, html };
 }
@@ -87,7 +116,7 @@ export async function sendEmail(env, { to, subject, html, text }) {
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from: env.EMAIL_FROM || 'Battaglia navale <onboarding@resend.dev>', to: [to], subject, html, text }),
+    body: JSON.stringify({ from: env.EMAIL_FROM || 'P2P <onboarding@resend.dev>', to: [to], subject, html, text }),
   });
   if (!res.ok) {
     console.log('email fallita', res.status, await res.text().catch(() => ''));

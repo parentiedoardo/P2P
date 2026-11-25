@@ -1,8 +1,11 @@
-import { SIZE, FLEET, SHIP_NAMES, fits, randomFleet, shipCells, validateFleet } from '/engine.js';
-import { toggleStealth, isStealth, setStealthTurn, setTitle } from '/stealth.js';
+import { SIZE, FLEET, fits, randomFleet, shipCells, validateFleet } from '/engine.js';
+import { t, lang, setLang, applyStatic, shipName, errorText } from '/i18n.js';
+import * as Stealth from '/stealth.js';
+import { LocalGame } from '/local.js';
 
 const $ = (id) => document.getElementById(id);
 const LETTERS = 'ABCDEFGHIJ';
+const cellName = (x, y) => `${LETTERS[x]}${y + 1}`;
 
 // --- Archivio locale (può non essere disponibile: tutto in try/catch) ---
 const store = {
@@ -12,6 +15,7 @@ const store = {
 };
 
 const params = new URLSearchParams(location.search);
+const solo = params.get('solo') === '1';
 let gameId = params.get('g');
 // Il link nei promemoria contiene il token (?t=): lo salviamo e lo togliamo dall'indirizzo.
 if (gameId && params.get('t')) {
@@ -22,8 +26,9 @@ let token = gameId ? store.get('bn:' + gameId) || params.get('t') : null;
 let vapidKey = null;
 let pushEndpoint = null; // sottoscrizione push di questo browser
 
-let state = null;        // ultima vista ricevuta dal server
+let state = null;        // ultima vista ricevuta
 let ws = null;
+let local = null;        // partita P1P contro il PC
 let retry = 0;
 let draft = [];          // navi posizionate ma non ancora confermate
 let dir = 'h';
@@ -36,11 +41,12 @@ function show(screen) {
 }
 
 function toast(text) {
-  const t = $('toast');
-  t.textContent = text;
-  t.hidden = false;
+  const el = $('toast');
+  el.textContent = text;
+  el.hidden = false;
   clearTimeout(toast.timer);
-  toast.timer = setTimeout(() => (t.hidden = true), 3500);
+  toast.timer = setTimeout(() => (el.hidden = true), 3500);
+  Stealth.flash(text);
 }
 
 const savedName = store.get('bn:name') || '';
@@ -49,13 +55,15 @@ $('name-create').value = savedName;
 $('name-join').value = savedName;
 $('email-create').value = savedEmail;
 $('email-join').value = savedEmail;
+$('start-stealth').checked = store.get('bn:startStealth') === '1';
+$('start-stealth').addEventListener('change', (e) => store.set('bn:startStealth', e.target.checked ? '1' : '0'));
 
 async function post(url, name, email) {
   store.set('bn:name', name);
   store.set('bn:email', email);
-  const res = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name, email }) });
+  const res = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name, email, lang }) });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok || data.error) throw new Error(data.error || 'Errore di rete, riprova.');
+  if (!res.ok || data.error) throw new Error(errorText(data.code, data.error));
   return data;
 }
 
@@ -69,6 +77,13 @@ $('form-create').addEventListener('submit', async (e) => {
     history.replaceState(null, '', '/?g=' + gameId);
     startGame();
   } catch (err) { toast(err.message); }
+});
+
+$('btn-solo').addEventListener('click', () => {
+  const name = $('name-create').value.trim();
+  if (name) store.set('bn:name', name);
+  store.del('bn:solo');
+  location.href = '/?solo=1';
 });
 
 $('form-join').addEventListener('submit', async (e) => {
@@ -85,51 +100,76 @@ $('form-join').addEventListener('submit', async (e) => {
 function connect() {
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
   ws = new WebSocket(`${proto}://${location.host}/api/games/${gameId}/ws?token=${encodeURIComponent(token)}`);
-  ws.onopen = () => { retry = 0; dispatchEvent(new Event('bn:connected')); };
+  ws.onopen = () => {
+    retry = 0;
+    send({ type: 'settings', lang }, true);
+    dispatchEvent(new Event('bn:connected'));
+  };
   ws.onmessage = (ev) => {
     const msg = JSON.parse(ev.data);
     if (msg.type === 'state') onState(msg.state);
-    else if (msg.type === 'error') { pending = false; toast(msg.message); render(); }
+    else if (msg.type === 'error') onError(msg.code, msg.message);
   };
   ws.onclose = (ev) => {
     if (ev.code === 4403) {
       store.del('bn:' + gameId);
       token = null;
-      if (ev.reason === 'Partita inesistente') { toast('Questa partita non esiste più.'); history.replaceState(null, '', '/'); gameId = null; show('home'); }
+      if (ev.reason === 'Partita inesistente') { toast(t('gameGone')); history.replaceState(null, '', '/'); gameId = null; show('home'); }
       else show('join');
       return;
     }
-    setStatus('Connessione persa, mi riconnetto…');
+    setStatus(t('reconnecting'));
     setTimeout(connect, Math.min(1000 * 2 ** retry++, 15000));
   };
 }
 
+function onError(code, message) {
+  pending = false;
+  toast(errorText(code, message));
+  render();
+}
+
 function send(msg, quiet = false) {
-  if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(msg));
-  else if (!quiet) toast('Non connesso, riprova tra un attimo.');
+  if (local) local.send(msg);
+  else if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(msg));
+  else if (!quiet) toast(t('notConnected'));
 }
 
 function startGame() {
   show('game');
-  setStatus('Connessione…');
+  setStatus(t('connecting'));
   connect();
 }
 
+function startSolo() {
+  show('game');
+  const name = store.get('bn:name') || (lang === 'it' ? 'Tu' : 'You');
+  local = new LocalGame({ name, onState, onError });
+  local.emit();
+}
+
 // ---------- Stato ----------
+function describe(s) {
+  if (s.result === 'miss') return t('miss');
+  if (s.result === 'hit') return t('hit');
+  return t('sunk', { ship: shipName(s.len).toLowerCase() });
+}
+
 function onState(next) {
   const prev = state;
   state = next;
   pending = false;
+  if (next.phase !== 'waiting' && next.phase !== 'placing') draft = [];
   if (prev && !prev.myTurn && next.myTurn) {
     const s = next.lastShot;
-    if (s && !s.byMe) toast(`${next.opponent.name} ha sparato in ${LETTERS[s.x]}${s.y + 1}: ${describe(s)}`);
+    if (s && !s.byMe) toast(t('shotAt', { name: next.opponent.name, cell: cellName(s.x, s.y), result: describe(s) }));
   }
   const key = (v) => (v?.lastShot ? `${v.lastShot.by}:${v.lastShot.x}:${v.lastShot.y}` : '');
   if (next.lastShot?.byMe && key(next) !== key(prev)) {
-    toast(`${LETTERS[next.lastShot.x]}${next.lastShot.y + 1}: ${describe(next.lastShot)}`);
+    toast(t('yourShot', { cell: cellName(next.lastShot.x, next.lastShot.y), result: describe(next.lastShot) }));
   }
-  setTitle(next.myTurn ? '🔴 Tocca a te! · Battaglia navale' : 'Battaglia navale');
-  setStealthTurn(next.myTurn);
+  Stealth.setTitle(next.myTurn ? '(1) P2P' : 'P2P');
+  Stealth.setTurn(next.myTurn);
   if (prev && !prev.myTurn && next.myTurn && document.visibilityState !== 'visible') localNotify(next);
   markSeen();
   render();
@@ -137,32 +177,28 @@ function onState(next) {
 
 /** Dice al server che il giocatore sta guardando la partita nel suo turno (niente promemoria). */
 function markSeen() {
-  if (state?.myTurn && document.visibilityState === 'visible') send({ type: 'seen' }, true);
+  if (!local && state?.myTurn && document.visibilityState === 'visible') send({ type: 'seen' }, true);
 }
 document.addEventListener('visibilitychange', markSeen);
 
 /** Notifica dalla pagina aperta in background (se il push non è attivo su questo browser). */
 function localNotify(s) {
-  if (isStealth() || pushEndpoint || !('Notification' in window) || Notification.permission !== 'granted') return;
+  if (local || Stealth.isActive() || pushEndpoint || !('Notification' in window) || Notification.permission !== 'granted') return;
   try {
-    const n = new Notification('Tocca a te! ⚓', {
-      body: s.lastShot ? `${s.opponent.name} ha sparato in ${LETTERS[s.lastShot.x]}${s.lastShot.y + 1}: ${describe(s.lastShot)}` : 'La partita è iniziata.',
+    const n = new Notification('P2P', {
+      body: s.lastShot ? t('shotAt', { name: s.opponent.name, cell: cellName(s.lastShot.x, s.lastShot.y), result: describe(s.lastShot) }) : t('started'),
       tag: 'turn-' + s.id,
+      icon: '/icon.png',
     });
     n.onclick = () => { window.focus(); n.close(); };
   } catch {}
-}
-
-function describe(s) {
-  if (s.result === 'miss') return 'acqua.';
-  if (s.result === 'hit') return 'colpito!';
-  return `colpito e affondato (${SHIP_NAMES[s.len].toLowerCase()})!`;
 }
 
 function setStatus(text, turn = false) {
   const el = $('status');
   el.textContent = text;
   el.classList.toggle('turn', turn);
+  Stealth.refresh();
 }
 
 // ---------- Rendering ----------
@@ -178,9 +214,9 @@ function buildBoard(el, onCell) {
       c.className = 'cell';
       c.dataset.x = x;
       c.dataset.y = y;
-      c.setAttribute('aria-label', LETTERS[x] + (y + 1));
+      c.setAttribute('aria-label', cellName(x, y));
       c.addEventListener('click', () => onCell(x, y));
-      c.addEventListener('mouseenter', () => { if (el.id === 'board-me') { hover = { x, y }; render(); } });
+      if (el.id === 'board-me') c.addEventListener('mouseenter', () => { hover = { x, y }; render(); });
       el.appendChild(c);
     }
   }
@@ -201,7 +237,42 @@ function nextLen() {
 }
 
 function placing() {
-  return state && (state.phase === 'waiting' || state.phase === 'placing') && !state.me.ready;
+  return !!state && (state.phase === 'waiting' || state.phase === 'placing') && !state.me.ready;
+}
+
+/** Segni da disegnare sulle due griglie: usati sia dalla pagina sia dal foglio "Note". */
+function marks({ withHover = true } = {}) {
+  const me = state.me;
+  const opp = state.opponent;
+  const mine = [];
+  const ships = me.ready ? me.ships : draft;
+  for (const s of ships) for (const c of shipCells(s)) mine.push([c.x, c.y, 'ship']);
+  if (withHover && placing() && hover && nextLen()) {
+    const ship = { x: hover.x, y: hover.y, len: nextLen(), dir };
+    const ok = fits(draft, ship);
+    for (const c of shipCells(ship)) if (c.x < SIZE && c.y < SIZE) mine.push([c.x, c.y, ok ? 'preview' : 'preview bad']);
+  }
+  for (const s of me.incoming) mine.push([s.x, s.y, s.hit ? 'hit shot' : 'miss shot']);
+  if (state.lastShot && !state.lastShot.byMe) mine.push([state.lastShot.x, state.lastShot.y, 'last']);
+
+  const theirs = [];
+  if (opp) {
+    if (opp.ships) for (const s of opp.ships) for (const c of shipCells(s)) theirs.push([c.x, c.y, 'ship']);
+    for (const s of opp.shots) theirs.push([s.x, s.y, s.hit ? 'hit shot' : 'miss shot']);
+    for (const s of opp.sunk) for (const c of shipCells(s)) theirs.push([c.x, c.y, 'sunk']);
+    if (state.lastShot?.byMe) theirs.push([state.lastShot.x, state.lastShot.y, 'last']);
+  }
+  return { mine, theirs };
+}
+
+function statusText() {
+  const me = state.me;
+  const opp = state.opponent;
+  const name = opp ? opp.name : t('opponent');
+  if (state.phase === 'waiting') return placing() ? t('waitingPlacing') : t('waitingReady');
+  if (state.phase === 'placing') return me.ready ? t('placingReady', { name }) : opp.ready && !state.solo ? t('placingYouOppReady', { name }) : t('placingYou');
+  if (state.phase === 'playing') return state.myTurn ? t('yourTurn') : t('theirTurn', { name });
+  return state.winner === 'me' ? t('youWon') : t('theyWon', { name });
 }
 
 function render() {
@@ -209,63 +280,38 @@ function render() {
   const me = state.me;
   const opp = state.opponent;
   $('my-name').textContent = '(' + me.name + ')';
-  $('opp-name').textContent = opp ? opp.name : 'avversario';
+  $('opp-title').textContent = t('fleetOf', { name: opp ? opp.name : t('opponent') });
   $('opp-online').classList.toggle('on', !!state.opponentOnline);
-  $('opp-online').title = state.opponentOnline ? 'Connesso' : 'Non connesso';
+  $('opp-online').title = state.opponentOnline ? t('online') : t('offline');
+  $('opp-online').hidden = !!state.solo;
+  $('notify').hidden = !!state.solo;
 
-  // Link di invito
   $('share').hidden = state.phase !== 'waiting';
   $('share-link').value = location.origin + '/?g=' + state.id;
 
-  // Posizionamento
   const isPlacing = placing();
   $('placement').hidden = !isPlacing;
   if (isPlacing) {
     const len = nextLen();
     $('placement-hint').textContent = len
-      ? `Posiziona: ${SHIP_NAMES[len]} (${len} caselle), ${dir === 'h' ? 'orizzontale' : 'verticale'}. Clicca una nave già messa per toglierla.`
-      : 'Flotta completa! Premi "Pronto" per confermarla.';
+      ? t('placeHint', { ship: shipName(len), len, dir: dir === 'h' ? t('horizontal') : t('vertical') })
+      : t('fleetComplete');
     $('btn-ready').disabled = validateFleet(draft) !== null;
   }
 
-  // Griglia del giocatore
-  const myMarks = [];
-  const ships = me.ready ? me.ships : draft;
-  for (const s of ships) for (const c of shipCells(s)) myMarks.push([c.x, c.y, 'ship']);
-  if (isPlacing && hover && nextLen()) {
-    const ship = { x: hover.x, y: hover.y, len: nextLen(), dir };
-    const ok = fits(draft, ship);
-    for (const c of shipCells(ship)) if (c.x < SIZE && c.y < SIZE) myMarks.push([c.x, c.y, ok ? 'preview' : 'preview bad']);
-  }
-  for (const s of me.incoming) myMarks.push([s.x, s.y, s.hit ? 'hit shot' : 'miss shot']);
-  if (state.lastShot && !state.lastShot.byMe) myMarks.push([state.lastShot.x, state.lastShot.y, 'last']);
-  paint($('board-me'), myMarks);
-
-  // Griglia avversaria
-  const oppMarks = [];
-  if (opp) {
-    if (opp.ships) for (const s of opp.ships) for (const c of shipCells(s)) oppMarks.push([c.x, c.y, 'ship']);
-    for (const s of opp.shots) oppMarks.push([s.x, s.y, s.hit ? 'hit shot' : 'miss shot']);
-    for (const s of opp.sunk) for (const c of shipCells(s)) oppMarks.push([c.x, c.y, 'sunk']);
-    if (state.lastShot?.byMe) oppMarks.push([state.lastShot.x, state.lastShot.y, 'last']);
-  }
-  paint($('board-opp'), oppMarks);
-  const canFire = state.myTurn && !pending;
-  $('board-opp').classList.toggle('clickable', canFire);
+  const { mine, theirs } = marks();
+  paint($('board-me'), mine);
+  paint($('board-opp'), theirs);
+  $('board-opp').classList.toggle('clickable', state.myTurn && !pending);
   document.querySelector('.boards').classList.toggle('playing', state.phase === 'playing');
   $('board-opp').classList.toggle('dim', state.phase === 'playing' && !state.myTurn);
 
-  // Stato
-  const oppName = opp ? opp.name : "l'avversario";
-  if (state.phase === 'waiting') setStatus(isPlacing ? 'In attesa che il collega entri. Intanto posiziona le navi.' : 'Flotta pronta. In attesa che il collega entri…');
-  else if (state.phase === 'placing') setStatus(me.ready ? `Flotta pronta. Aspettiamo ${oppName}…` : `Posiziona la tua flotta${opp.ready ? ` (${oppName} ha già schierato la sua)` : ''}.`);
-  else if (state.phase === 'playing') setStatus(state.myTurn ? 'Tocca a te! Spara sulla flotta avversaria.' : `Turno di ${oppName}…`, state.myTurn);
-  else setStatus(state.winner === 'me' ? 'Hai vinto! 🎉' : `Ha vinto ${oppName}.`);
-
-  renderNotify();
+  setStatus(statusText(), state.myTurn);
+  if (!state.solo) renderNotify();
 
   $('finished').hidden = state.phase !== 'finished';
-  $('finished-text').textContent = state.winner === 'me' ? 'Hai vinto! Tutta la flotta avversaria è affondata.' : `Hai perso: ${oppName} ha affondato la tua flotta.`;
+  $('btn-rematch').hidden = !state.solo;
+  $('finished-text').textContent = state.winner === 'me' ? t('youWonLong') : t('youLostLong', { name: opp?.name });
 }
 
 // ---------- Interazioni ----------
@@ -276,7 +322,7 @@ function onMyCell(x, y) {
   const len = nextLen();
   if (!len) return;
   const ship = { x, y, len, dir };
-  if (!fits(draft, ship)) { toast('Non ci sta: le navi non possono uscire dalla griglia né toccarsi.'); return; }
+  if (!fits(draft, ship)) { toast(t('noFit')); return; }
   draft.push(ship);
   render();
 }
@@ -289,18 +335,25 @@ function onOppCell(x, y) {
   render();
 }
 
-$('btn-rotate').addEventListener('click', () => { dir = dir === 'h' ? 'v' : 'h'; render(); });
-$('btn-random').addEventListener('click', () => { draft = randomFleet(); render(); });
-$('btn-clear').addEventListener('click', () => { draft = []; render(); });
-$('btn-ready').addEventListener('click', () => {
-  send({ type: 'place', ships: draft });
-});
+const actions = {
+  rotate() { dir = dir === 'h' ? 'v' : 'h'; render(); },
+  random() { draft = randomFleet(); render(); },
+  clear() { draft = []; render(); },
+  ready() { if (validateFleet(draft) === null) send({ type: 'place', ships: draft }); },
+  rematch() { if (local) { draft = []; local.restart(); } else location.href = '/'; },
+};
+
+$('btn-rotate').addEventListener('click', actions.rotate);
+$('btn-random').addEventListener('click', actions.random);
+$('btn-clear').addEventListener('click', actions.clear);
+$('btn-ready').addEventListener('click', actions.ready);
+$('btn-rematch').addEventListener('click', actions.rematch);
 $('btn-copy').addEventListener('click', async () => {
-  try { await navigator.clipboard.writeText($('share-link').value); toast('Link copiato!'); }
+  try { await navigator.clipboard.writeText($('share-link').value); toast(t('linkCopied')); }
   catch { $('share-link').select(); }
 });
 document.addEventListener('keydown', (e) => {
-  if ((e.key === 'r' || e.key === 'R') && placing() && document.activeElement?.tagName !== 'INPUT') { dir = dir === 'h' ? 'v' : 'h'; render(); }
+  if ((e.key === 'r' || e.key === 'R') && placing() && !Stealth.isActive() && document.activeElement?.tagName !== 'INPUT') actions.rotate();
 });
 
 // ---------- Notifiche ----------
@@ -311,15 +364,15 @@ function renderNotify() {
   const pushOn = !!pushEndpoint && st.pushEndpoints.includes(pushEndpoint);
   const localOn = 'Notification' in window && Notification.permission === 'granted';
   const btn = $('btn-push');
-  if (!('Notification' in window)) { btn.hidden = true; $('push-status').textContent = 'Questo browser non supporta le notifiche.'; }
-  else if (Notification.permission === 'denied') { btn.hidden = true; $('push-status').textContent = 'Notifiche bloccate: riattivale dalle impostazioni del sito nel browser.'; }
-  else if (pushOn || (localOn && !vapidKey)) { btn.hidden = true; $('push-status').textContent = pushOn ? '✓ Notifiche attive, anche a scheda chiusa.' : '✓ Notifiche attive mentre la scheda è aperta.'; }
+  if (!('Notification' in window)) { btn.hidden = true; $('push-status').textContent = t('notifUnsupported'); }
+  else if (Notification.permission === 'denied') { btn.hidden = true; $('push-status').textContent = t('notifBlocked'); }
+  else if (pushOn || (localOn && !vapidKey)) { btn.hidden = true; $('push-status').textContent = pushOn ? t('notifOnPush') : t('notifOnLocal'); }
   else { btn.hidden = false; $('push-status').textContent = ''; }
   if (document.activeElement !== $('email-settings')) $('email-settings').value = st.email;
   const parts = [];
   if (pushOn || localOn) parts.push('browser');
   if (st.email) parts.push('email');
-  $('notify-summary').textContent = parts.length ? '· ' + parts.join(' + ') : '· disattivati';
+  $('notify-summary').textContent = '· ' + (parts.length ? parts.join(' + ') : t('notifOff'));
 }
 
 function keyBytes(b64) {
@@ -335,7 +388,7 @@ async function initPush() {
     const sub = await reg.pushManager.getSubscription();
     if (sub) {
       pushEndpoint = sub.endpoint;
-      // Ricollega questo browser alla partita corrente (sottoscrizione già concessa altrove).
+      // Ricollega questo browser alla sessione corrente (permesso già concesso in passato).
       const sendSub = () => send({ type: 'push-subscribe', subscription: sub.toJSON() }, true);
       if (ws?.readyState === WebSocket.OPEN) sendSub(); else addEventListener('bn:connected', sendSub, { once: true });
     }
@@ -354,8 +407,8 @@ $('btn-push').addEventListener('click', async () => {
       const sub = (await reg.pushManager.getSubscription()) || (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(vapidKey) }));
       pushEndpoint = sub.endpoint;
       send({ type: 'push-subscribe', subscription: sub.toJSON() });
-    } catch (e) {
-      toast('Non riesco ad attivare le notifiche a scheda chiusa: funzioneranno solo con la scheda aperta.');
+    } catch {
+      toast(t('pushFailed'));
     }
   }
   render();
@@ -367,23 +420,57 @@ $('form-email').addEventListener('submit', (e) => {
   store.set('bn:email', email);
   send({ type: 'settings', email });
   $('email-settings').blur();
-  toast(email ? 'Email salvata.' : 'Promemoria via email disattivati.');
+  toast(email ? t('emailSaved') : t('emailOff'));
 });
 
-// ---------- Tema e modalità discreta ----------
+// ---------- Tema, lingua, miniatura, modalità discreta ----------
 const themeSelect = $('theme');
-themeSelect.value = document.documentElement.dataset.theme || 'mare';
+themeSelect.value = document.documentElement.dataset.theme || 'excel';
 themeSelect.addEventListener('change', () => {
   document.documentElement.dataset.theme = themeSelect.value;
   store.set('bn:theme', themeSelect.value);
   themeSelect.blur();
 });
-$('btn-stealth').addEventListener('click', (e) => { e.currentTarget.blur(); toggleStealth(true); });
+
+const langSelect = $('lang');
+langSelect.value = lang;
+langSelect.addEventListener('change', () => {
+  setLang(langSelect.value);
+  langSelect.blur();
+  if (!local) send({ type: 'settings', lang }, true);
+  Stealth.rebuild();
+  render();
+});
+
+function setMini(on) {
+  document.documentElement.classList.toggle('mini', on);
+  $('btn-mini').setAttribute('aria-pressed', String(on));
+  store.set('bn:mini', on ? '1' : '0');
+}
+setMini(document.documentElement.classList.contains('mini'));
+$('btn-mini').addEventListener('click', (e) => { e.currentTarget.blur(); setMini(!document.documentElement.classList.contains('mini')); });
+
+$('btn-stealth').addEventListener('click', (e) => { e.currentTarget.blur(); Stealth.toggle(true); });
+
+Stealth.bind({
+  getState: () => state,
+  isPlacing: placing,
+  marks: () => marks({ withHover: false }),
+  status: () => $('status').textContent,
+  canFire: () => !!state?.myTurn && !pending,
+  onMyCell,
+  onOppCell,
+  actions,
+  dir: () => dir,
+});
 
 // ---------- Avvio ----------
+setLang(lang);
 buildBoard($('board-me'), onMyCell);
 buildBoard($('board-opp'), onOppCell);
-if (!gameId) show('home');
+if (solo) startSolo();
+else if (!gameId) show('home');
 else if (!token) show('join');
 else startGame();
-initPush();
+if (!solo) initPush();
+if (document.documentElement.classList.contains('stealth-boot')) Stealth.toggle(true);

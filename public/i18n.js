@@ -1,0 +1,237 @@
+// Testi dell'interfaccia in italiano e inglese.
+
+const DICT = {
+  it: {
+    appTitle: 'P2P',
+    theme: 'Tema',
+    language: 'Lingua',
+    mini: 'Miniatura',
+    miniTitle: 'Mostra il campo in miniatura',
+    stealth: 'Modalità discreta',
+    stealthTitle: 'Nasconde tutto dietro un foglio di calcolo. Scorciatoia: barra spaziatrice',
+    spaceKey: 'Spazio',
+    themeOffice: 'Ufficio',
+    themeExcel: 'Foglio di calcolo',
+    themeTech: 'Disegno tecnico',
+    themeNotebook: 'Quaderno a quadretti',
+    themeSonar: 'Sonar',
+
+    homeTitle: 'Nuova sessione',
+    homeIntro: 'Sfida un collega con un link (P2P) oppure gioca da solo contro il PC (P1P).',
+    yourName: 'Il tuo nome',
+    namePlaceholder: 'Es. Edoardo',
+    emailOptional: 'Email',
+    emailHint: '(facoltativa, per i promemoria)',
+    emailPlaceholder: 'nome@azienda.it',
+    newP2P: 'P2P · sfida un collega',
+    newP1P: 'P1P · gioca contro il PC',
+    startStealth: 'Apri sempre in modalità discreta',
+    joinTitle: 'Sei stato invitato',
+    joinIntro: 'Scegli un nome per entrare nella sessione.',
+    join: 'Entra',
+
+    shareText: 'Manda questo link al collega che vuoi sfidare:',
+    copy: 'Copia',
+    linkCopied: 'Link copiato.',
+    rotate: 'Ruota (R)',
+    random: 'Casuale',
+    clear: 'Svuota',
+    ready: 'Pronto',
+    yourFleet: 'La tua flotta',
+    fleetOf: 'Flotta di {name}',
+    opponent: 'avversario',
+    pc: 'PC',
+    online: 'Connesso',
+    offline: 'Non connesso',
+    newGame: 'Nuova partita',
+    rematch: 'Rivincita',
+
+    notifyTitle: 'Notifiche e promemoria',
+    notifyIntro: 'Quando tocca a te ricevi una notifica nel browser. Se dopo 5 minuti non hai ancora aperto la sessione, ti mandiamo un\'email con la situazione e il link.',
+    enablePush: 'Attiva notifiche del browser',
+    emailForReminders: 'Email per i promemoria',
+    save: 'Salva',
+    notifOff: 'disattivati',
+    notifUnsupported: 'Questo browser non supporta le notifiche.',
+    notifBlocked: 'Notifiche bloccate: riattivale dalle impostazioni del sito nel browser.',
+    notifOnPush: '✓ Notifiche attive, anche a scheda chiusa.',
+    notifOnLocal: '✓ Notifiche attive mentre la scheda è aperta.',
+    pushFailed: 'Non riesco ad attivare le notifiche a scheda chiusa: funzioneranno solo con la scheda aperta.',
+    emailSaved: 'Email salvata.',
+    emailOff: 'Promemoria via email disattivati.',
+
+    placeHint: 'Posiziona: {ship} ({len} caselle), {dir}. Clicca una nave già messa per toglierla.',
+    horizontal: 'orizzontale',
+    vertical: 'verticale',
+    fleetComplete: 'Flotta completa. Premi "Pronto" per confermarla.',
+    noFit: 'Non ci sta: le navi non possono uscire dalla griglia né toccarsi.',
+    waitingPlacing: 'In attesa che il collega entri. Intanto posiziona le navi.',
+    waitingReady: 'Flotta pronta. In attesa che il collega entri…',
+    placingReady: 'Flotta pronta. Aspettiamo {name}…',
+    placingYou: 'Posiziona la tua flotta.',
+    placingYouOppReady: 'Posiziona la tua flotta ({name} ha già schierato la sua).',
+    yourTurn: 'Tocca a te: spara sulla flotta avversaria.',
+    theirTurn: 'Turno di {name}…',
+    youWon: 'Hai vinto.',
+    theyWon: 'Ha vinto {name}.',
+    youWonLong: 'Hai vinto: tutta la flotta avversaria è affondata.',
+    youLostLong: 'Hai perso: {name} ha affondato la tua flotta.',
+    connecting: 'Connessione…',
+    reconnecting: 'Connessione persa, mi riconnetto…',
+    notConnected: 'Non connesso, riprova tra un attimo.',
+    networkError: 'Errore di rete, riprova.',
+    gameGone: 'Questa sessione non esiste più.',
+    shotAt: '{name} ha sparato in {cell}: {result}',
+    yourShot: '{cell}: {result}',
+    miss: 'acqua.',
+    hit: 'colpito.',
+    sunk: 'colpito e affondato ({ship}).',
+    started: 'La partita è iniziata.',
+    notifTurn: 'Tocca a te',
+    ships: { 5: 'Portaerei', 4: 'Corazzata', 3: 'Incrociatore', 2: 'Cacciatorpediniere' },
+    errors: {
+      game_full: 'La sessione è già al completo.',
+      not_placing: 'Non è il momento di posizionare le navi.',
+      already_ready: 'Hai già confermato la tua flotta.',
+      invalid_fleet: 'Le navi devono stare nella griglia e non possono toccarsi.',
+      not_playing: 'La partita non è in corso.',
+      not_your_turn: 'Non è il tuo turno.',
+      bad_cell: 'Casella non valida.',
+      already_shot: 'Hai già sparato in questa casella.',
+      not_found: 'Questa sessione non esiste.',
+    },
+  },
+  en: {
+    appTitle: 'P2P',
+    theme: 'Theme',
+    language: 'Language',
+    mini: 'Mini',
+    miniTitle: 'Show a miniature board',
+    stealth: 'Stealth mode',
+    stealthTitle: 'Hides everything behind a spreadsheet. Shortcut: space bar',
+    spaceKey: 'Space',
+    themeOffice: 'Office',
+    themeExcel: 'Spreadsheet',
+    themeTech: 'Technical drawing',
+    themeNotebook: 'Graph paper',
+    themeSonar: 'Sonar',
+
+    homeTitle: 'New session',
+    homeIntro: 'Challenge a colleague with a link (P2P) or play alone against the PC (P1P).',
+    yourName: 'Your name',
+    namePlaceholder: 'e.g. Alex',
+    emailOptional: 'Email',
+    emailHint: '(optional, for reminders)',
+    emailPlaceholder: 'name@company.com',
+    newP2P: 'P2P · challenge a colleague',
+    newP1P: 'P1P · play against the PC',
+    startStealth: 'Always open in stealth mode',
+    joinTitle: 'You have been invited',
+    joinIntro: 'Pick a name to join the session.',
+    join: 'Join',
+
+    shareText: 'Send this link to the colleague you want to challenge:',
+    copy: 'Copy',
+    linkCopied: 'Link copied.',
+    rotate: 'Rotate (R)',
+    random: 'Random',
+    clear: 'Clear',
+    ready: 'Ready',
+    yourFleet: 'Your fleet',
+    fleetOf: "{name}'s fleet",
+    opponent: 'opponent',
+    pc: 'PC',
+    online: 'Online',
+    offline: 'Offline',
+    newGame: 'New game',
+    rematch: 'Rematch',
+
+    notifyTitle: 'Notifications and reminders',
+    notifyIntro: "When it's your turn you get a browser notification. If you haven't opened the session after 5 minutes, we email you the board and the link.",
+    enablePush: 'Enable browser notifications',
+    emailForReminders: 'Email for reminders',
+    save: 'Save',
+    notifOff: 'off',
+    notifUnsupported: 'This browser does not support notifications.',
+    notifBlocked: "Notifications are blocked: re-enable them in the browser's site settings.",
+    notifOnPush: '✓ Notifications on, even with the tab closed.',
+    notifOnLocal: '✓ Notifications on while the tab is open.',
+    pushFailed: "Couldn't enable notifications with the tab closed: they will only work while it's open.",
+    emailSaved: 'Email saved.',
+    emailOff: 'Email reminders turned off.',
+
+    placeHint: 'Place: {ship} ({len} cells), {dir}. Click a placed ship to remove it.',
+    horizontal: 'horizontal',
+    vertical: 'vertical',
+    fleetComplete: 'Fleet complete. Press "Ready" to confirm it.',
+    noFit: "Doesn't fit: ships can't leave the grid or touch each other.",
+    waitingPlacing: 'Waiting for your colleague to join. Place your ships meanwhile.',
+    waitingReady: 'Fleet ready. Waiting for your colleague to join…',
+    placingReady: 'Fleet ready. Waiting for {name}…',
+    placingYou: 'Place your fleet.',
+    placingYouOppReady: 'Place your fleet ({name} is already ready).',
+    yourTurn: "Your turn: fire at the enemy fleet.",
+    theirTurn: "{name}'s turn…",
+    youWon: 'You won.',
+    theyWon: '{name} won.',
+    youWonLong: 'You won: the whole enemy fleet is sunk.',
+    youLostLong: 'You lost: {name} sank your fleet.',
+    connecting: 'Connecting…',
+    reconnecting: 'Connection lost, reconnecting…',
+    notConnected: 'Not connected, try again in a moment.',
+    networkError: 'Network error, please retry.',
+    gameGone: 'This session no longer exists.',
+    shotAt: '{name} fired at {cell}: {result}',
+    yourShot: '{cell}: {result}',
+    miss: 'miss.',
+    hit: 'hit.',
+    sunk: 'hit and sunk ({ship}).',
+    started: 'The game has started.',
+    notifTurn: 'Your turn',
+    ships: { 5: 'Carrier', 4: 'Battleship', 3: 'Cruiser', 2: 'Destroyer' },
+    errors: {
+      game_full: 'This session is already full.',
+      not_placing: "It's not time to place ships.",
+      already_ready: 'You already confirmed your fleet.',
+      invalid_fleet: "Ships must stay in the grid and can't touch.",
+      not_playing: 'The game is not in progress.',
+      not_your_turn: "It's not your turn.",
+      bad_cell: 'Invalid cell.',
+      already_shot: 'You already fired at this cell.',
+      not_found: 'This session does not exist.',
+    },
+  },
+};
+
+function readLang() {
+  try {
+    const saved = localStorage.getItem('bn:lang');
+    if (saved === 'it' || saved === 'en') return saved;
+  } catch {}
+  return (navigator.language || 'it').toLowerCase().startsWith('it') ? 'it' : 'en';
+}
+
+export let lang = readLang();
+
+export function setLang(l) {
+  lang = l === 'en' ? 'en' : 'it';
+  try { localStorage.setItem('bn:lang', lang); } catch {}
+  document.documentElement.lang = lang;
+  applyStatic();
+}
+
+/** Traduce una chiave sostituendo {segnaposto}. */
+export function t(key, params = {}) {
+  const v = DICT[lang][key] ?? DICT.it[key] ?? key;
+  return typeof v === 'string' ? v.replace(/\{(\w+)\}/g, (_, k) => params[k] ?? '') : v;
+}
+
+export const shipName = (len) => t('ships')[len];
+export const errorText = (code, fallback) => t('errors')[code] || fallback || t('networkError');
+
+/** Applica le traduzioni agli elementi con data-i18n, data-i18n-placeholder, data-i18n-title. */
+export function applyStatic(root = document) {
+  for (const el of root.querySelectorAll('[data-i18n]')) el.textContent = t(el.dataset.i18n);
+  for (const el of root.querySelectorAll('[data-i18n-placeholder]')) el.placeholder = t(el.dataset.i18nPlaceholder);
+  for (const el of root.querySelectorAll('[data-i18n-title]')) el.title = t(el.dataset.i18nTitle);
+}

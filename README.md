@@ -1,4 +1,4 @@
-# Battaglia navale
+# P2P
 
 Gioco web di Battaglia navale 1 contro 1, in tempo reale tra due PC.
 Gira su Cloudflare Workers + Durable Objects (piano gratuito).
@@ -10,11 +10,20 @@ Gira su Cloudflare Workers + Durable Objects (piano gratuito).
    Clic per piazzare, **R** o "Ruota" per cambiare verso, "Casuale" per fare in fretta.
 4. Si spara a turno, un colpo per turno. Vince chi affonda per primo tutta la flotta avversaria.
 
-### Temi e modalità discreta
-- Dal menu in alto scegli il tema: 🌊 Mare, 📊 Foglio di calcolo, 📐 Disegno tecnico, ✏️ Quaderno a quadretti, 📡 Sonar. Il browser lo ricorda.
-- **Barra spaziatrice** (o il pulsante 🙈): copre il gioco con un finto foglio di calcolo, anche nel titolo della scheda.
-  Si torna al gioco con Spazio, Esc o toccando il logo verde in alto a sinistra.
+### Modalità
+- **P2P**: sfida un collega mandandogli il link della sessione.
+- **P1P**: gioca da solo contro il PC (tutto nel browser, la partita resta salvata se ricarichi).
+
+### Aspetto e discrezione
+- Temi dal menu in alto: Ufficio, Foglio di calcolo (predefinito), Disegno tecnico, Quaderno a quadretti, Sonar. Il browser lo ricorda.
+- **Miniatura**: campo piccolo, con le due griglie affiancate.
+- Lingua: italiano o inglese (anche email e notifiche).
+- **Barra spaziatrice** (o il pulsante "Modalità discreta"): copre tutto con un finto foglio di calcolo.
+  Si può scrivere liberamente nelle celle (doppio clic, F2 o inizia a digitare; Invio conferma).
+  Nel foglio **Note**, scorrendo a destra, ci sono il campo in miniatura e i comandi: si gioca da lì.
+  Si torna al gioco con Spazio, Esc o toccando l'icona verde in alto a sinistra.
   Segnale discreto: quando tocca a te, in basso a sinistra c'è scritto "Ricalcolo" invece di "Pronto".
+- Opzione "Apri sempre in modalità discreta" nella schermata iniziale.
 
 Se chiudi la scheda, riaprendo lo stesso link riprendi la partita da dove era rimasta.
 

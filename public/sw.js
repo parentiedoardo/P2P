@@ -11,9 +11,9 @@ self.addEventListener('push', (event) => {
     const target = new URL(data.url || '/', self.location.origin);
     const focused = windows.some((w) => w.focused && new URL(w.url).searchParams.get('g') === target.searchParams.get('g'));
     if (focused) return;
-    await self.registration.showNotification(data.title || 'Battaglia navale', {
-      body: data.body || 'Tocca a te!',
-      tag: data.tag || 'battaglia-navale',
+    await self.registration.showNotification(data.title || 'P2P', {
+      body: data.body || '',
+      tag: data.tag || 'p2p',
       renotify: true,
       icon: '/icon.png',
       data: { url: target.href },

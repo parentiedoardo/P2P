@@ -3,53 +3,67 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Battaglia navale</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚓</text></svg>">
+  <title>P2P</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/style.css">
   <link rel="stylesheet" href="/themes.css">
   <link rel="stylesheet" href="/stealth.css">
-  <script>try { document.documentElement.dataset.theme = localStorage.getItem('bn:theme') || 'mare'; } catch { document.documentElement.dataset.theme = 'mare'; }</script>
+  <script>
+    (function () {
+      var d = document.documentElement, get = function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } };
+      d.dataset.theme = get('bn:theme') || 'excel';
+      if (get('bn:mini') === '1') d.classList.add('mini');
+      if (get('bn:startStealth') === '1') d.classList.add('stealth-boot');
+      var l = get('bn:lang'); d.lang = l || ((navigator.language || 'it').toLowerCase().indexOf('it') === 0 ? 'it' : 'en');
+    })();
+  </script>
 </head>
 <body>
   <header class="top">
-    <a href="/" class="brand">⚓ Battaglia navale</a>
+    <a href="/" class="brand"><img src="/favicon.svg" alt="" width="20" height="20"> P2P</a>
     <div class="top-tools">
-      <label for="theme" class="sr-only">Tema grafico</label>
-      <select id="theme" title="Tema grafico">
-        <option value="mare">🌊 Mare</option>
-        <option value="excel">📊 Foglio di calcolo</option>
-        <option value="tecnico">📐 Disegno tecnico</option>
-        <option value="quaderno">✏️ Quaderno a quadretti</option>
-        <option value="sonar">📡 Sonar</option>
+      <select id="theme" data-i18n-title="theme" aria-label="Tema">
+        <option value="mare" data-i18n="themeOffice">Ufficio</option>
+        <option value="excel" data-i18n="themeExcel">Foglio di calcolo</option>
+        <option value="tecnico" data-i18n="themeTech">Disegno tecnico</option>
+        <option value="quaderno" data-i18n="themeNotebook">Quaderno a quadretti</option>
+        <option value="sonar" data-i18n="themeSonar">Sonar</option>
       </select>
-      <button id="btn-stealth" type="button" title="Nasconde il gioco dietro un foglio di calcolo. Scorciatoia: barra spaziatrice">🙈 Modalità discreta <kbd>Spazio</kbd></button>
+      <select id="lang" data-i18n-title="language" aria-label="Lingua">
+        <option value="it">IT</option>
+        <option value="en">EN</option>
+      </select>
+      <button id="btn-mini" type="button" data-i18n-title="miniTitle" aria-pressed="false"><span class="ico">▣</span> <span class="lbl" data-i18n="mini">Miniatura</span></button>
+      <button id="btn-stealth" type="button" data-i18n-title="stealthTitle"><span class="ico">▦</span> <span class="lbl" data-i18n="stealth">Modalità discreta</span> <kbd data-i18n="spaceKey">Spazio</kbd></button>
     </div>
   </header>
 
   <main>
-    <!-- Home: nuova partita -->
+    <!-- Home -->
     <section id="screen-home" class="card narrow" hidden>
-      <h1>Sfida un collega</h1>
-      <p class="muted">Crea una partita e manda il link a chi vuoi sfidare.</p>
+      <h1 data-i18n="homeTitle">Nuova sessione</h1>
+      <p class="muted" data-i18n="homeIntro"></p>
       <form id="form-create">
-        <label for="name-create">Il tuo nome</label>
-        <input id="name-create" maxlength="24" autocomplete="nickname" required placeholder="Es. Edoardo">
-        <label for="email-create">Email <span class="muted">(facoltativa, per i promemoria)</span></label>
-        <input id="email-create" type="email" maxlength="254" autocomplete="email" placeholder="nome@azienda.it">
-        <button type="submit" class="primary">Nuova partita</button>
+        <label for="name-create" data-i18n="yourName">Il tuo nome</label>
+        <input id="name-create" maxlength="24" autocomplete="nickname" required data-i18n-placeholder="namePlaceholder">
+        <label for="email-create"><span data-i18n="emailOptional">Email</span> <span class="muted" data-i18n="emailHint"></span></label>
+        <input id="email-create" type="email" maxlength="254" autocomplete="email" data-i18n-placeholder="emailPlaceholder">
+        <button type="submit" class="primary" data-i18n="newP2P">P2P</button>
+        <button type="button" id="btn-solo" data-i18n="newP1P">P1P</button>
       </form>
+      <label class="check"><input type="checkbox" id="start-stealth"> <span data-i18n="startStealth"></span></label>
     </section>
 
-    <!-- Ingresso in una partita esistente -->
+    <!-- Ingresso in una sessione esistente -->
     <section id="screen-join" class="card narrow" hidden>
-      <h1>Sei stato sfidato!</h1>
-      <p class="muted">Scegli un nome per entrare nella partita.</p>
+      <h1 data-i18n="joinTitle"></h1>
+      <p class="muted" data-i18n="joinIntro"></p>
       <form id="form-join">
-        <label for="name-join">Il tuo nome</label>
+        <label for="name-join" data-i18n="yourName"></label>
         <input id="name-join" maxlength="24" autocomplete="nickname" required>
-        <label for="email-join">Email <span class="muted">(facoltativa, per i promemoria)</span></label>
-        <input id="email-join" type="email" maxlength="254" autocomplete="email" placeholder="nome@azienda.it">
-        <button type="submit" class="primary">Entra nella partita</button>
+        <label for="email-join"><span data-i18n="emailOptional">Email</span> <span class="muted" data-i18n="emailHint"></span></label>
+        <input id="email-join" type="email" maxlength="254" autocomplete="email" data-i18n-placeholder="emailPlaceholder">
+        <button type="submit" class="primary" data-i18n="join"></button>
       </form>
     </section>
 
@@ -58,60 +72,63 @@
       <div id="status" class="status" role="status" aria-live="polite"></div>
 
       <div id="share" class="card share" hidden>
-        <p>Manda questo link al collega che vuoi sfidare:</p>
+        <p data-i18n="shareText"></p>
         <div class="share-row">
           <input id="share-link" readonly>
-          <button id="btn-copy" type="button">Copia</button>
+          <button id="btn-copy" type="button" data-i18n="copy"></button>
         </div>
       </div>
 
       <div id="placement" class="card placement" hidden>
         <p id="placement-hint"></p>
         <div class="row">
-          <button id="btn-rotate" type="button">Ruota (R)</button>
-          <button id="btn-random" type="button">Casuale</button>
-          <button id="btn-clear" type="button">Svuota</button>
-          <button id="btn-ready" type="button" class="primary" disabled>Pronto!</button>
+          <button id="btn-rotate" type="button" data-i18n="rotate"></button>
+          <button id="btn-random" type="button" data-i18n="random"></button>
+          <button id="btn-clear" type="button" data-i18n="clear"></button>
+          <button id="btn-ready" type="button" class="primary" disabled data-i18n="ready"></button>
         </div>
       </div>
 
       <details id="notify" class="card notify">
-        <summary>🔔 Notifiche e promemoria <span id="notify-summary" class="muted"></span></summary>
-        <p class="muted">Quando tocca a te ricevi una notifica nel browser. Se dopo 5 minuti non hai ancora aperto la partita, ti mandiamo un'email con la situazione e il link.</p>
+        <summary><span data-i18n="notifyTitle"></span> <span id="notify-summary" class="muted"></span></summary>
+        <p class="muted" data-i18n="notifyIntro"></p>
         <div class="row">
-          <button id="btn-push" type="button" class="primary">Attiva notifiche del browser</button>
+          <button id="btn-push" type="button" class="primary" data-i18n="enablePush"></button>
           <span id="push-status" class="muted"></span>
         </div>
         <form id="form-email" class="inline">
-          <label for="email-settings">Email per i promemoria</label>
+          <label for="email-settings" data-i18n="emailForReminders"></label>
           <div class="share-row">
-            <input id="email-settings" type="email" maxlength="254" autocomplete="email" placeholder="nome@azienda.it">
-            <button type="submit">Salva</button>
+            <input id="email-settings" type="email" maxlength="254" autocomplete="email" data-i18n-placeholder="emailPlaceholder">
+            <button type="submit" data-i18n="save"></button>
           </div>
         </form>
       </details>
 
       <div class="boards">
-        <div class="board-wrap">
-          <h2>La tua flotta <span id="my-name" class="muted"></span></h2>
+        <div class="board-wrap" id="wrap-me">
+          <h2><span data-i18n="yourFleet"></span> <span id="my-name" class="muted"></span></h2>
           <div id="board-me" class="board"></div>
         </div>
         <div class="board-wrap" id="wrap-opp">
-          <h2>Flotta di <span id="opp-name">…</span> <span id="opp-online" class="dot" title="Non connesso"></span></h2>
+          <h2><span id="opp-title"></span> <span id="opp-online" class="dot"></span></h2>
           <div id="board-opp" class="board"></div>
         </div>
       </div>
 
       <div id="finished" class="card narrow center" hidden>
         <p id="finished-text" class="big"></p>
-        <a href="/" class="button primary">Nuova partita</a>
+        <div class="row center-row">
+          <button id="btn-rematch" type="button" class="primary" data-i18n="rematch" hidden></button>
+          <a href="/" class="button" data-i18n="newGame"></a>
+        </div>
       </div>
     </section>
 
     <div id="toast" class="toast" hidden></div>
   </main>
 
-  <div id="stealth" class="stealth" hidden aria-hidden="true"></div>
+  <div id="stealth" class="stealth" hidden></div>
 
   <script type="module" src="/app.js"></script>
 </body>

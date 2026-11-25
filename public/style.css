@@ -1,35 +1,35 @@
 :root {
-  --bg: #f3f6fa;
+  --bg: #f4f5f7;
   --surface: #ffffff;
-  --text: #13233a;
-  --muted: #5b6b80;
-  --border: #d5dde8;
-  --accent: #1f6feb;
+  --text: #24292f;
+  --muted: #6a737d;
+  --border: #d0d7de;
+  --accent: #3b5b7a;
   --accent-text: #ffffff;
-  --sea: #dcebfa;
-  --sea-hover: #c4dcf5;
-  --ship: #5b6b80;
-  --miss: #8aa4c2;
-  --hit: #e5534b;
-  --sunk: #8b1e1a;
-  --ok: #2da44e;
-  --preview: #9fd19f;
-  --bad: #f2b8b5;
+  --sea: #eef1f4;
+  --sea-hover: #e1e6eb;
+  --ship: #8a96a3;
+  --miss: #9aa4ae;
+  --hit: #c0504d;
+  --sunk: #7b2c2a;
+  --ok: #3b7a57;
+  --preview: #b9d3c3;
+  --bad: #efc6c4;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]), :root[data-theme="mare"] {
-    --bg: #0d1520;
-    --surface: #152131;
-    --text: #e6edf5;
-    --muted: #93a3b8;
-    --border: #2a3a50;
-    --accent: #4c8dff;
-    --sea: #1b3150;
-    --sea-hover: #24426a;
-    --ship: #9aa9bd;
-    --miss: #4f6a8c;
-    --preview: #3f7a44;
-    --bad: #7a3330;
+    --bg: #16191d;
+    --surface: #1e2227;
+    --text: #d8dde3;
+    --muted: #8b949e;
+    --border: #30363d;
+    --accent: #6f8fae;
+    --sea: #262b31;
+    --sea-hover: #2f353c;
+    --ship: #6b7682;
+    --miss: #59636e;
+    --preview: #3d5a48;
+    --bad: #5a2f2e;
   }
 }
 
@@ -48,7 +48,8 @@ body {
 .top select { font: inherit; font-size: 0.9rem; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text); }
 .top button { font-size: 0.9rem; padding: 6px 10px; }
 kbd { font: inherit; font-size: 0.75rem; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 4px; padding: 0 4px; }
-.brand { color: var(--text); font-weight: 700; text-decoration: none; }
+.brand { color: var(--text); font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; }
+.brand img { display: block; border-radius: 3px; }
 main { max-width: 980px; margin: 0 auto; padding: 16px; }
 h1 { margin: 0 0 4px; font-size: 1.5rem; }
 h2 { margin: 0 0 8px; font-size: 1rem; display: flex; align-items: center; gap: 6px; }
@@ -83,7 +84,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .boards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; }
 .board {
-  display: grid; grid-template-columns: 22px repeat(10, 1fr); gap: 2px;
+  display: grid; grid-template-columns: 22px repeat(10, minmax(0, 1fr)); gap: 2px;
   width: 100%; max-width: 440px; user-select: none;
 }
 .label { font-size: 0.75rem; color: var(--muted); display: flex; align-items: center; justify-content: center; }
@@ -124,3 +125,37 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 form.inline { margin-top: 16px; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 @media (max-width: 640px) { .top kbd { display: none; } }
+
+.check { display: flex; align-items: center; gap: 8px; margin-top: 14px; font-size: 0.9rem; color: var(--muted); cursor: pointer; }
+.check input { width: auto; }
+.center-row { justify-content: center; }
+.top button[aria-pressed="true"] { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+.ico { font-size: 0.95em; }
+
+/* Telefono: barra in alto compatta, solo icone */
+@media (max-width: 640px) {
+  .top { padding: 8px 12px; gap: 8px; }
+  .top .lbl { display: none; }
+  .top-tools { gap: 6px; }
+  .top select { max-width: 120px; }
+  main { padding: 12px; }
+  .status { font-size: 1rem; padding: 10px 12px; }
+  .share-row { flex-wrap: wrap; }
+  .share-row input { min-width: 0; flex: 1 1 180px; }
+}
+
+/* Miniatura: campo piccolo e discreto, le due griglie affiancate */
+.mini .boards { grid-template-columns: repeat(2, max-content); gap: 16px; justify-content: start; }
+.mini .board { width: 176px; max-width: 176px; grid-template-columns: 12px repeat(10, minmax(0, 1fr)); gap: 1px; }
+.mini .board > * { min-width: 0; overflow: hidden; }
+.mini .label { font-size: 0.5rem; }
+.mini .board-wrap h2 { font-size: 0.75rem; margin-bottom: 4px; }
+.mini .cell.hit::after, .mini .cell.sunk::after { font-size: 0.55rem !important; }
+.mini .cell.miss::after { inset: 36%; }
+.mini .status { font-size: 0.85rem; padding: 6px 10px; margin-bottom: 10px; }
+.mini .card { padding: 10px; margin-bottom: 10px; font-size: 0.85rem; }
+.mini .card button { padding: 5px 9px; font-size: 0.8rem; }
+@media (max-width: 400px) {
+  .mini .boards { gap: 8px; }
+  .mini .board { width: 160px; max-width: 160px; }
+}

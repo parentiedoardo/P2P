@@ -80,7 +80,8 @@ test("immagine del campo e testo del promemoria", async () => {
   assert.equal(v.getUint32(20), IMAGE_SIZE.height);
 
   const c = reminderContent({ playerName: 'Bruno <b>', opponentName: 'Anna', lastShot: g.lastShot, link: 'https://x/?g=1&t=2', imageUrl: 'https://x/i.png' });
-  assert.match(c.subject, /Tocca a te contro Anna/);
+  assert.match(c.subject, /Tocca a te · Anna · P2P/);
+  assert.match(reminderContent({ playerName: 'B', opponentName: 'Anna', lastShot: null, link: 'x', imageUrl: 'y', lang: 'en' }).subject, /Your turn/);
   assert.ok(c.html.includes('Bruno &lt;b&gt;'), 'nome con HTML escapato');
   assert.ok(c.html.includes('https://x/?g=1&amp;t=2'));
   assert.match(c.text, /D4/);

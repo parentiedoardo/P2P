@@ -1,7 +1,7 @@
 import { DurableObject } from 'cloudflare:workers';
 import * as E from '../public/engine.js';
 import { sendPush, b64urlEncode } from './webpush.js';
-import { boardImage, reminderContent, sendEmail, describeShot } from './notify.js';
+import { boardImage, reminderContent, sendEmail, describeShot, texts } from './notify.js';
 
 const ALPHABET = 'abcdefghjkmnpqrstuvwxyz23456789';
 
@@ -29,10 +29,12 @@ export function cleanEmail(email) {
   return /^[^\s@<>"]+@[^\s@<>"]+\.[^\s@<>"]+$/.test(e) ? e : null;
 }
 
+const cleanLang = (l) => (l === 'en' ? 'en' : 'it');
+
 async function readProfile(request) {
   let body = {};
   try { body = await request.json(); } catch {}
-  return { name: E.cleanName(body?.name), email: cleanEmail(body?.email) };
+  return { name: E.cleanName(body?.name), email: cleanEmail(body?.email), lang: cleanLang(body?.lang) };
 }
 
 export default {
@@ -106,7 +108,7 @@ export class GameRoom extends DurableObject {
   newPlayer(profile) {
     const token = randomId(24);
     const idx = E.addPlayer(this.game, { token, name: profile.name });
-    Object.assign(this.game.players[idx], { email: profile.email, imageKey: randomId(24), push: [], seenAt: 0 });
+    Object.assign(this.game.players[idx], { lang: profile.lang, email: profile.email, imageKey: randomId(24), push: [], seenAt: 0 });
     return token;
   }
 
@@ -121,14 +123,14 @@ export class GameRoom extends DurableObject {
   }
 
   async join(profile) {
-    if (!(await this.load())) return { error: 'Questa partita non esiste.' };
+    if (!(await this.load())) return { error: 'Questa partita non esiste.', code: 'not_found' };
     try {
       const token = this.newPlayer(profile);
       await this.save();
       this.broadcast();
       return { token };
     } catch (e) {
-      if (e instanceof E.GameError) return { error: e.message };
+      if (e instanceof E.GameError) return { error: e.message, code: e.code };
       throw e;
     }
   }
@@ -181,6 +183,7 @@ export class GameRoom extends DurableObject {
         }
         case 'settings': {
           if ('email' in msg) player.email = cleanEmail(msg.email);
+          if ('lang' in msg) player.lang = cleanLang(msg.lang);
           await this.save();
           this.broadcast();
           return;
@@ -210,7 +213,7 @@ export class GameRoom extends DurableObject {
       await this.onTurnChanged();
     } catch (e) {
       if (!(e instanceof E.GameError)) throw e;
-      ws.send(JSON.stringify({ type: 'error', message: e.message }));
+      ws.send(JSON.stringify({ type: 'error', code: e.code, message: e.message }));
     }
   }
 
@@ -245,15 +248,18 @@ export class GameRoom extends DurableObject {
     const g = this.game;
     if (g.phase === 'playing') {
       await this.ctx.storage.setAlarm(g.turnStartedAt + this.reminderMs);
+      const T = texts(g.players[g.turn].lang);
+      const opp = g.players[1 - g.turn].name;
       await this.push(g.turn, {
-        title: 'Tocca a te! ⚓',
-        body: g.lastShot ? `${g.players[1 - g.turn].name} ha sparato in ${describeShot(g.lastShot)}.` : `La partita contro ${g.players[1 - g.turn].name} è iniziata.`,
+        title: T.pushTurn,
+        body: g.lastShot ? T.pushShot(opp, describeShot(g.lastShot, g.players[g.turn].lang)) : T.pushStart(opp),
       });
     } else {
       await this.ctx.storage.deleteAlarm();
       if (g.phase === 'finished') {
         const loser = 1 - g.winner;
-        await this.push(loser, { title: 'Partita finita', body: `Ha vinto ${g.players[g.winner].name}.` });
+        const T = texts(g.players[loser].lang);
+        await this.push(loser, { title: T.pushEnd, body: T.pushEndBody(g.players[g.winner].name) });
       }
     }
   }
@@ -302,8 +308,10 @@ export class GameRoom extends DurableObject {
       lastShot: g.lastShot && g.lastShot.by !== idx ? g.lastShot : null,
       link: this.link(idx),
       imageUrl,
+      lang: p.lang,
     });
     if (p.email) await sendEmail(this.env, { to: p.email, ...content });
-    await this.push(idx, { title: 'Ti stanno aspettando! ⚓', body: `${opp.name} aspetta la tua mossa da 5 minuti.` });
+    const T = texts(p.lang);
+    await this.push(idx, { title: T.pushWait, body: T.pushWaitBody(opp.name) });
   }
 }
