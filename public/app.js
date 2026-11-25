@@ -1,6 +1,7 @@
 import { SIZE, FLEET, fits, randomFleet, shipCells, validateFleet } from '/engine.js';
 import { t, lang, setLang, applyStatic, shipName, errorText } from '/i18n.js';
 import * as Stealth from '/stealth.js';
+import * as Shell from '/shell.js';
 import { LocalGame, LocalMatch } from '/local.js';
 import * as BoardUI from '/boardui.js';
 import { warnBeforeMs, cleanKind, cleanTurnSeconds } from '/games/match.js';
@@ -61,8 +62,14 @@ $('name-create').value = savedName;
 $('name-join').value = savedName;
 $('email-create').value = savedEmail;
 $('email-join').value = savedEmail;
-$('start-stealth').checked = store.get('bn:startStealth') === '1';
-$('start-stealth').addEventListener('change', (e) => store.set('bn:startStealth', e.target.checked ? '1' : '0'));
+// "Apri sempre in modalità discreta": nel modulo e nel menu File, sincronizzati
+for (const id of ['start-stealth', 'fp-start-stealth']) {
+  $(id).checked = store.get('bn:startStealth') === '1';
+  $(id).addEventListener('change', (e) => {
+    store.set('bn:startStealth', e.target.checked ? '1' : '0');
+    for (const other of ['start-stealth', 'fp-start-stealth']) $(other).checked = e.target.checked;
+  });
+}
 
 // Scelta del gioco e del tempo per turno (ricordate per la prossima volta)
 const kindInputs = [...document.querySelectorAll('input[name="kind"]')];
@@ -71,9 +78,18 @@ const selectedKind = () => kindInputs.find((i) => i.checked)?.value || 'navale';
   const k = cleanKind(store.get('bn:kind'));
   for (const i of kindInputs) i.checked = i.value === k;
 }
-for (const i of kindInputs) i.addEventListener('change', () => store.set('bn:kind', selectedKind()));
-$('turn-time').value = String(cleanTurnSeconds(store.get('bn:turnSeconds')));
-$('turn-time').addEventListener('change', () => store.set('bn:turnSeconds', $('turn-time').value));
+// Le stesse scelte compaiono nel menu File: le teniamo allineate.
+const fpKindInputs = [...document.querySelectorAll('input[name="fp-kind"]')];
+const syncKind = (k) => { for (const i of [...kindInputs, ...fpKindInputs]) i.checked = i.value === k; };
+syncKind(selectedKind());
+for (const i of [...kindInputs, ...fpKindInputs]) i.addEventListener('change', () => { store.set('bn:kind', i.value); syncKind(i.value); });
+for (const id of ['turn-time', 'fp-time']) {
+  $(id).value = String(cleanTurnSeconds(store.get('bn:turnSeconds')));
+  $(id).addEventListener('change', (e) => {
+    store.set('bn:turnSeconds', e.target.value);
+    $('turn-time').value = $('fp-time').value = e.target.value;
+  });
+}
 
 async function post(url, name, email, extra = {}) {
   store.set('bn:name', name);
@@ -84,10 +100,14 @@ async function post(url, name, email, extra = {}) {
   return data;
 }
 
-$('form-create').addEventListener('submit', async (e) => {
+$('form-create').addEventListener('submit', (e) => {
   e.preventDefault();
+  createSession($('name-create').value, $('email-create').value);
+});
+
+async function createSession(name, email) {
   try {
-    const data = await post('/api/games', $('name-create').value, $('email-create').value, {
+    const data = await post('/api/games', name, email, {
       kind: selectedKind(),
       turnSeconds: Number($('turn-time').value),
     });
@@ -97,13 +117,38 @@ $('form-create').addEventListener('submit', async (e) => {
     history.replaceState(null, '', '/?g=' + gameId);
     startGame();
   } catch (err) { toast(err.message); }
-});
+}
 
-$('btn-solo').addEventListener('click', () => {
+function startP1P() {
   const name = $('name-create').value.trim();
   if (name) store.set('bn:name', name);
-  location.href = `/?solo=1&kind=${selectedKind()}&ts=${$('turn-time').value}&new=1`;
+  navigate(`/?solo=1&kind=${selectedKind()}&ts=${$('turn-time').value}&new=1`);
+}
+$('btn-solo').addEventListener('click', startP1P);
+
+/** Cambia pagina restando in modalità discreta se era attiva. */
+function navigate(url) {
+  if (Stealth.isActive()) { try { sessionStorage.setItem('bn:stealthNow', '1'); } catch {} }
+  location.href = url;
+}
+
+// Menu File: nuova sessione con le scelte fatte lì
+$('fp-p2p').addEventListener('click', () => {
+  const name = (store.get('bn:name') || $('name-create').value || '').trim();
+  if (!name) {
+    // Serve un nome: torniamo al modulo iniziale
+    Shell.closeFile();
+    if (Stealth.isActive()) Stealth.toggle(false);
+    if ($('screen-home').hidden) { navigate('/'); return; }
+    $('name-create').focus();
+    return;
+  }
+  Shell.closeFile();
+  if (local || gameId) leaveSession();
+  local = null;
+  createSession(name, store.get('bn:email') || '');
 });
+$('fp-p1p').addEventListener('click', () => { Shell.closeFile(); leaveSession(); startP1P(); });
 
 $('form-join').addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -149,6 +194,8 @@ function onInfo(msg) {
     draft = [];
     picker.reset();
     toast(t('restarted', { name: msg.name }));
+  } else if (msg.code === 'left') {
+    toast(t('left', { name: msg.name }));
   } else if (msg.code === 'timeout') {
     const name = state?.opponent?.name || t('opponent');
     const text = msg.byMe
@@ -486,17 +533,26 @@ function onOppCell(x, y) {
   render();
 }
 
+/** Lascia la sessione in corso: in P2P avvisa l'avversario. */
+function leaveSession() {
+  if (!local && ws && ws.readyState === WebSocket.OPEN) {
+    try { ws.send(JSON.stringify({ type: 'leave' })); } catch {}
+  }
+  if (ws) { ws.onclose = null; try { ws.close(); } catch {} ws = null; }
+  draft = [];
+  picker.reset();
+}
+
 const actions = {
   rotate() { dir = dir === 'h' ? 'v' : 'h'; render(); },
   random() { draft = randomFleet(); render(); },
   clear() { draft = []; render(); },
   ready() { if (validateFleet(draft) === null) send({ type: 'place', ships: draft }); },
-  rematch() { picker.reset(); if (local) { draft = []; local.restart(); } else location.href = '/'; },
+  rematch() { picker.reset(); if (local) { draft = []; local.restart(); } else navigate('/'); },
+  // "Ricomincia": si torna alla scelta iniziale del gioco
   restart() {
-    draft = [];
-    picker.reset();
-    if (local) local.restart();
-    else send({ type: 'restart' });
+    leaveSession();
+    navigate('/');
   },
 };
 
@@ -615,13 +671,15 @@ langSelect.addEventListener('change', () => {
 
 function setMini(on) {
   document.documentElement.classList.toggle('mini', on);
-  $('btn-mini').setAttribute('aria-pressed', String(on));
+  $('btn-mini').checked = on;
   store.set('bn:mini', on ? '1' : '0');
 }
 setMini(document.documentElement.classList.contains('mini'));
-$('btn-mini').addEventListener('click', (e) => { e.currentTarget.blur(); setMini(!document.documentElement.classList.contains('mini')); });
+$('btn-mini').addEventListener('change', (e) => setMini(e.target.checked));
 
 $('btn-stealth').addEventListener('click', (e) => { e.currentTarget.blur(); Stealth.toggle(true); });
+$('fp-stealth').addEventListener('click', (e) => { e.currentTarget.blur(); Stealth.toggle(); });
+Shell.init();
 
 Stealth.bind({
   getState: () => state,

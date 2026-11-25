@@ -1,29 +1,29 @@
-/* Finto foglio di calcolo della modalità discreta. Sempre chiaro, indipendente dal tema. */
-html.stealth-boot main, html.stealth-boot .top { visibility: hidden; }
+/* Finto foglio di calcolo (modalità discreta e cornice della pagina). Colori in variabili --x-*: chiaro o scuro. */
+html.stealth-boot main, html.stealth-boot .shell, html.stealth-boot .sheet-bg { visibility: hidden; }
 body.stealth-on { overflow: hidden; }
 .stealth {
   position: fixed; inset: 0; z-index: 1000; display: flex; flex-direction: column;
-  background: #fff; color: #1f1f1f; font: 13px/1.3 Calibri, Carlito, "Segoe UI", Arial, sans-serif; text-shadow: none;
+  background: var(--x-bg); color: var(--x-text); font: 13px/1.3 Calibri, Carlito, "Segoe UI", Arial, sans-serif; text-shadow: none;
 }
 .stealth[hidden] { display: none; }
-.xl-title { background: #1d6f42; color: #fff; display: flex; align-items: center; gap: 14px; padding: 6px 12px; font-size: 12.5px; white-space: nowrap; overflow: hidden; }
+.xl-title { background: var(--x-green); color: #fff; display: flex; align-items: center; gap: 14px; padding: 6px 12px; font-size: 12.5px; white-space: nowrap; overflow: hidden; }
 .xl-logo { width: 20px; height: 20px; cursor: pointer; flex: none; }
 .xl-file { font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
 .xl-saved { opacity: 0.8; }
 .xl-search { margin-left: auto; background: rgba(255, 255, 255, 0.18); padding: 3px 60px 3px 10px; border-radius: 4px; }
-.xl-menu { background: #1d6f42; color: #fff; display: flex; gap: 2px; padding: 0 8px; overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
+.xl-menu { background: var(--x-green); color: #fff; display: flex; gap: 2px; padding: 0 8px; overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
 .xl-menu span { padding: 6px 10px; }
-.xl-menu span.on { background: #f3f3f3; color: #1d6f42; border-radius: 3px 3px 0 0; font-weight: 600; }
-.xl-ribbon { background: #f3f3f3; display: flex; padding: 6px 4px 2px; border-bottom: 1px solid #d4d4d4; overflow: hidden; }
-.xl-ribbon .grp { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 0 10px; border-right: 1px solid #d4d4d4; max-width: 170px; justify-content: center; }
+.xl-menu span.on { background: var(--x-head); color: var(--x-accent); border-radius: 3px 3px 0 0; font-weight: 600; }
+.xl-ribbon { background: var(--x-head); display: flex; padding: 6px 4px 2px; border-bottom: 1px solid var(--x-line); overflow: hidden; }
+.xl-ribbon .grp { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 0 10px; border-right: 1px solid var(--x-line); max-width: 170px; justify-content: center; }
 .xl-ribbon .grp.wide { max-width: 200px; }
-.xl-ribbon small { width: 100%; text-align: center; color: #666; font-size: 11px; }
-.xl-ribbon .b { min-width: 22px; height: 22px; display: inline-grid; place-items: center; border-radius: 2px; color: #333; }
-.xl-ribbon .fake-input { border: 1px solid #c6c6c6; background: #fff; padding: 1px 18px 1px 4px; font-size: 12px; }
+.xl-ribbon small { width: 100%; text-align: center; color: var(--x-muted); font-size: 11px; }
+.xl-ribbon .b { min-width: 22px; height: 22px; display: inline-grid; place-items: center; border-radius: 2px; color: var(--x-muted); }
+.xl-ribbon .fake-input { border: 1px solid var(--x-input-line); background: var(--x-input); padding: 1px 18px 1px 4px; font-size: 12px; }
 .xl-ribbon .fake-input.s { padding-right: 10px; }
-.xl-formula { display: flex; align-items: center; border-bottom: 1px solid #d4d4d4; height: 26px; flex: none; }
-.xl-name { width: 70px; flex: none; padding: 0 6px; border-right: 1px solid #d4d4d4; height: 100%; display: flex; align-items: center; }
-.xl-fx { width: 32px; flex: none; text-align: center; color: #666; font-style: italic; border-right: 1px solid #d4d4d4; }
+.xl-formula { display: flex; align-items: center; border-bottom: 1px solid var(--x-line); height: 26px; flex: none; }
+.xl-name { width: 70px; flex: none; padding: 0 6px; border-right: 1px solid var(--x-line); height: 100%; display: flex; align-items: center; }
+.xl-fx { width: 32px; flex: none; text-align: center; color: var(--x-muted); font-style: italic; border-right: 1px solid var(--x-line); }
 .xl-f { padding: 0 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .xl-grid-wrap { flex: 1; overflow: auto; -webkit-overflow-scrolling: touch; }
 .xl-grid { border-collapse: collapse; table-layout: fixed; width: max-content; }
@@ -31,64 +31,64 @@ body.stealth-on { overflow: hidden; }
 .xl-grid col.c-std { width: 92px; }
 .xl-grid col.c-wide { width: 190px; }
 .xl-grid col.c-game { width: 24px; }
-.xl-grid th { background: #f3f3f3; color: #444; font-weight: 400; border: 1px solid #d4d4d4; height: 20px; position: sticky; top: 0; z-index: 2; }
+.xl-grid th { background: var(--x-head); color: var(--x-head-text); font-weight: 400; border: 1px solid var(--x-line); height: 20px; position: sticky; top: 0; z-index: 2; }
 .xl-grid th.corner { left: 0; z-index: 3; }
 .xl-grid th.rowh { position: sticky; left: 0; z-index: 1; }
-.xl-grid td { border: 1px solid #e1e1e1; height: 20px; padding: 0 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: cell; position: relative; }
-.xl-grid td.sel { outline: 2px solid #1d6f42; outline-offset: -2px; }
+.xl-grid td { border: 1px solid var(--x-cell-line); height: 20px; padding: 0 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: cell; position: relative; }
+.xl-grid td.sel { outline: 2px solid var(--x-green); outline-offset: -2px; }
 .xl-grid td.num { text-align: right; font-variant-numeric: tabular-nums; }
 .xl-grid td.center { text-align: center; }
 .xl-grid td.neg { color: #c00000; }
-.xl-grid td.head { background: #1d6f42; color: #fff; font-weight: 600; }
+.xl-grid td.head { background: var(--x-green); color: #fff; font-weight: 600; }
 .xl-grid td.title { font-size: 16px; font-weight: 700; overflow: visible; }
 .xl-grid td.muted, .xl-grid td.muted-strong { overflow: visible; }
-.xl-grid td.muted { color: #666; }
+.xl-grid td.muted { color: var(--x-muted); }
 .xl-grid td.hint { color: #9a9a9a; font-style: italic; overflow: visible; }
-.xl-grid td.total { font-weight: 700; border-top: 2px solid #1f1f1f; }
+.xl-grid td.total { font-weight: 700; border-top: 2px solid var(--x-text); }
 .xl-grid td.bad { background: #ffc7ce; color: #9c0006; }
 .xl-grid td.good { background: #c6efce; color: #006100; }
-.xl-edit { position: absolute; inset: 0; width: 100%; border: 0; outline: 2px solid #1d6f42; outline-offset: -2px; padding: 0 4px; font: inherit; background: #fff; color: inherit; }
+.xl-edit { position: absolute; inset: 0; width: 100%; border: 0; outline: 2px solid var(--x-green); outline-offset: -2px; padding: 0 4px; font: inherit; background: var(--x-bg); color: inherit; }
 
 /* Campo da gioco nel foglio Note: sembra una tabella con formattazione condizionale. */
 .xl-grid td.g-title { font-weight: 700; overflow: visible; padding: 0 2px; }
-.xl-grid td.g-head { background: #f3f3f3; color: #444; text-align: center; font-size: 11px; padding: 0; }
+.xl-grid td.g-head { background: var(--x-head); color: var(--x-head-text); text-align: center; font-size: 11px; padding: 0; }
 .xl-grid td.g-sea { padding: 0; text-align: center; font-size: 11px; }
 .xl-grid td.g-click { cursor: pointer; }
-.xl-grid td.g-click:hover { background: #e2efda; }
-.xl-grid td.g-ship { background: #d9d9d9; }
+.xl-grid td.g-click:hover { background: var(--x-tint); }
+.xl-grid td.g-ship { background: var(--x-ship); }
 .xl-grid td.g-hit { background: #f8cbad; color: #c00000; font-weight: 700; }
 .xl-grid td.g-miss { color: #8c8c8c; }
 .xl-grid td.g-sunk { background: #c00000; color: #fff; font-weight: 700; }
-.xl-grid td.g-last { outline: 2px solid #1d6f42; outline-offset: -2px; }
-.xl-grid td.g-cmd { background: #f3f3f3; border: 1px solid #b7b7b7; text-align: center; cursor: pointer; overflow: visible; padding: 0 6px; }
-.xl-grid td.g-cmd:hover { background: #e2efda; }
-.xl-grid td.g-primary { background: #1d6f42; color: #fff; }
-.xl-grid td.g-status { overflow: visible; color: #444; padding: 0 2px; }
-.xl-grid td .g-text { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; position: relative; z-index: 1; background: #fff; }
+.xl-grid td.g-last { outline: 2px solid var(--x-green); outline-offset: -2px; }
+.xl-grid td.g-cmd { background: var(--x-head); border: 1px solid var(--x-input-line); text-align: center; cursor: pointer; overflow: visible; padding: 0 6px; }
+.xl-grid td.g-cmd:hover { background: var(--x-tint); }
+.xl-grid td.g-primary { background: var(--x-green); color: #fff; }
+.xl-grid td.g-status { overflow: visible; color: var(--x-head-text); padding: 0 2px; }
+.xl-grid td .g-text { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; position: relative; z-index: 1; background: var(--x-bg); }
 .xl-grid td.g-danger { background: #c00000; color: #fff; }
 .xl-grid td.g-cmdbar { overflow: visible; padding: 0; }
 .g-bar { position: absolute; left: 0; top: 1px; display: flex; gap: 4px; z-index: 1; }
-.g-btn { background: #f3f3f3; border: 1px solid #b7b7b7; padding: 0 8px; line-height: 17px; cursor: pointer; white-space: nowrap; }
-.g-btn.g-primary { background: #1d6f42; border-color: #1d6f42; color: #fff; }
+.g-btn { background: var(--x-head); border: 1px solid var(--x-input-line); padding: 0 8px; line-height: 17px; cursor: pointer; white-space: nowrap; }
+.g-btn.g-primary { background: var(--x-green); border-color: var(--x-accent); color: #fff; }
 .g-btn.g-danger { background: #c00000; border-color: #c00000; color: #fff; }
-.xl-grid td.g-turn { color: #1d6f42; font-weight: 700; }
+.xl-grid td.g-turn { color: var(--x-accent); font-weight: 700; }
 
-.xl-tabs { display: flex; background: #f3f3f3; border-top: 1px solid #d4d4d4; white-space: nowrap; overflow-x: auto; scrollbar-width: none; flex: none; }
-.xl-tabs span { padding: 5px 14px; color: #444; cursor: pointer; }
+.xl-tabs { display: flex; background: var(--x-head); border-top: 1px solid var(--x-line); white-space: nowrap; overflow-x: auto; scrollbar-width: none; flex: none; }
+.xl-tabs span { padding: 5px 14px; color: var(--x-head-text); cursor: pointer; }
 .xl-tabs span.nav { cursor: default; }
-.xl-tabs span.on { background: #fff; color: #1d6f42; font-weight: 600; border-bottom: 2px solid #1d6f42; }
-.xl-status { display: flex; justify-content: space-between; gap: 12px; background: #f3f3f3; color: #444; padding: 3px 12px; font-size: 12px; border-top: 1px solid #d4d4d4; white-space: pre; flex: none; }
+.xl-tabs span.on { background: var(--x-bg); color: var(--x-accent); font-weight: 600; border-bottom: 2px solid var(--x-green); }
+.xl-status { display: flex; justify-content: space-between; gap: 12px; background: var(--x-head); color: var(--x-head-text); padding: 3px 12px; font-size: 12px; border-top: 1px solid var(--x-line); white-space: pre; flex: none; }
 @media (max-width: 640px) {
   .xl-ribbon, .xl-search, .xl-qa, .xl-zoom { display: none; }
   .xl-grid col.c-wide { width: 150px; }
 }
 /* Scacchi e dama nel foglio Note: lettere nelle celle, come codici in una tabella */
 .xl-grid td.g-sq { padding: 0; text-align: center; font-size: 11px; font-family: Consolas, "Cascadia Mono", monospace; }
-.xl-grid td.g-dark { background: #f2f2f2; }
-.xl-grid td.g-own { font-weight: 700; color: #1f1f1f; }
+.xl-grid td.g-dark { background: var(--x-head); }
+.xl-grid td.g-own { font-weight: 700; color: var(--x-text); }
 .xl-grid td.g-opp { color: #7f7f7f; }
-.xl-grid td.g-last { background: #fff2cc; }
-.xl-grid td.g-selsq { outline: 2px solid #1d6f42; outline-offset: -2px; background: #e2efda; }
-.xl-grid td.g-target { background: #e2efda; }
-.xl-grid td.g-target:empty::after { content: "·"; color: #1d6f42; font-weight: 700; }
+.xl-grid td.g-last { background: var(--x-last); }
+.xl-grid td.g-selsq { outline: 2px solid var(--x-green); outline-offset: -2px; background: var(--x-tint); }
+.xl-grid td.g-target { background: var(--x-tint); }
+.xl-grid td.g-target:empty::after { content: "·"; color: var(--x-accent); font-weight: 700; }
 .xl-grid td.g-check { background: #f8cbad; color: #c00000; }

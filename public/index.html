@@ -7,11 +7,14 @@
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/style.css">
   <link rel="stylesheet" href="/themes.css">
+  <link rel="stylesheet" href="/shell.css">
   <link rel="stylesheet" href="/stealth.css">
   <script>
     (function () {
       var d = document.documentElement, get = function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } };
       d.dataset.theme = get('bn:theme') || 'excel';
+      var m = get('bn:mode'); d.dataset.mode = m === 'dark' || m === 'light' ? m : (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      try { if (sessionStorage.getItem('bn:stealthNow') === '1') { sessionStorage.removeItem('bn:stealthNow'); d.classList.add('stealth-boot'); } } catch (e) {}
       if (get('bn:mini') === '1') d.classList.add('mini');
       if (get('bn:startStealth') === '1') d.classList.add('stealth-boot');
       var l = get('bn:lang'); d.lang = l || ((navigator.language || 'it').toLowerCase().indexOf('it') === 0 ? 'it' : 'en');
@@ -19,24 +22,73 @@
   </script>
 </head>
 <body>
-  <header class="top">
-    <a href="/" class="brand"><img src="/favicon.svg" alt="" width="20" height="20"> P2P</a>
-    <div class="top-tools">
-      <select id="theme" data-i18n-title="theme" aria-label="Tema">
-        <option value="mare" data-i18n="themeOffice">Ufficio</option>
-        <option value="excel" data-i18n="themeExcel">Foglio di calcolo</option>
-        <option value="tecnico" data-i18n="themeTech">Disegno tecnico</option>
-        <option value="quaderno" data-i18n="themeNotebook">Quaderno a quadretti</option>
-        <option value="sonar" data-i18n="themeSonar">Sonar</option>
-      </select>
-      <select id="lang" data-i18n-title="language" aria-label="Lingua">
-        <option value="it">IT</option>
-        <option value="en">EN</option>
-      </select>
-      <button id="btn-mini" type="button" data-i18n-title="miniTitle" aria-pressed="false"><span class="ico">▣</span> <span class="lbl" data-i18n="mini">Miniatura</span></button>
-      <button id="btn-stealth" type="button" data-i18n-title="stealthTitle"><span class="ico">▦</span> <span class="lbl" data-i18n="stealth">Modalità discreta</span> <kbd data-i18n="spaceKey">Spazio</kbd></button>
+  <!-- Cornice del finto foglio di calcolo: la pagina sta "sopra" una tabella vuota -->
+  <header class="shell" id="shell">
+    <div class="xl-title">
+      <a href="/" class="xl-home" data-i18n-title="newSession"><img class="xl-logo" src="/favicon.svg" alt="P2P" width="20" height="20"></a>
+      <span class="xl-file">P2P</span><span class="xl-saved" data-i18n="savedState">· Salvato</span>
+      <span class="xl-tools">
+        <button id="btn-mode" type="button" class="xl-tool" data-i18n-title="modeTitle" aria-pressed="false">☾</button>
+        <button id="btn-stealth" type="button" class="xl-tool" data-i18n-title="stealthTitle">▦ <kbd data-i18n="spaceKey">Spazio</kbd></button>
+      </span>
     </div>
+    <div class="xl-menu" id="shell-menu">
+      <button type="button" class="xl-filebtn" data-file-menu aria-haspopup="true" aria-expanded="false">File</button>
+      <span class="on" data-i18n="menuHome">Home</span><span data-i18n="menuInsert">Inserisci</span><span data-i18n="menuLayout">Layout di pagina</span><span data-i18n="menuFormulas">Formule</span><span data-i18n="menuData">Dati</span><span data-i18n="menuReview">Revisione</span><span data-i18n="menuView">Visualizza</span>
+    </div>
+    <div class="xl-formula"><span class="xl-name">A1</span><span class="xl-fx">ƒx</span><span class="xl-f" id="shell-f"></span></div>
+    <div class="sheet-cols" id="sheet-cols" aria-hidden="true"></div>
   </header>
+  <div class="sheet-rows" id="sheet-rows" aria-hidden="true"></div>
+
+  <!-- Menu File: impostazioni (resta aperto finché non lo si chiude) -->
+  <div id="file-panel" class="file-panel" hidden role="dialog" aria-labelledby="fp-title">
+    <div class="fp-head"><b id="fp-title">File</b><button type="button" class="fp-close" id="fp-close" data-i18n-title="close">✕</button></div>
+    <div class="fp-body">
+      <section>
+        <h3 data-i18n="newSession">Nuova sessione</h3>
+        <div class="seg" role="radiogroup" data-i18n-title="gameLabel">
+          <label><input type="radio" name="fp-kind" value="navale"><span data-i18n="kindNavale">Flotta</span></label>
+          <label><input type="radio" name="fp-kind" value="scacchi"><span data-i18n="kindScacchi">Scacchi</span></label>
+          <label><input type="radio" name="fp-kind" value="dama"><span data-i18n="kindDama">Dama</span></label>
+        </div>
+        <label class="fp-row"><span data-i18n="turnTime">Tempo per turno</span>
+          <select id="fp-time">
+            <option value="0" data-i18n="timeNone">Nessun limite</option>
+            <option value="30">30 s</option><option value="60">1 min</option><option value="120">2 min</option><option value="300">5 min</option><option value="600">10 min</option>
+          </select>
+        </label>
+        <div class="fp-actions">
+          <button type="button" class="primary" id="fp-p2p" data-i18n="newP2P">P2P</button>
+          <button type="button" id="fp-p1p" data-i18n="newP1P">P1P</button>
+        </div>
+      </section>
+      <section>
+        <h3 data-i18n="viewSection">Visualizza</h3>
+        <label class="fp-row"><span data-i18n="theme">Tema</span>
+          <select id="theme">
+            <option value="mare" data-i18n="themeOffice">Ufficio</option>
+            <option value="excel" data-i18n="themeExcel">Foglio di calcolo</option>
+            <option value="tecnico" data-i18n="themeTech">Disegno tecnico</option>
+            <option value="quaderno" data-i18n="themeNotebook">Quaderno a quadretti</option>
+            <option value="sonar" data-i18n="themeSonar">Sonar</option>
+          </select>
+        </label>
+        <div class="fp-row"><span data-i18n="modeLabel">Aspetto</span>
+          <div class="seg seg2" role="radiogroup">
+            <label><input type="radio" name="fp-mode" value="light"><span data-i18n="modeLight">☀ Chiaro</span></label>
+            <label><input type="radio" name="fp-mode" value="dark"><span data-i18n="modeDark">☾ Scuro</span></label>
+          </div>
+        </div>
+        <label class="fp-row"><span data-i18n="language">Lingua</span>
+          <select id="lang"><option value="it">Italiano</option><option value="en">English</option></select>
+        </label>
+        <label class="fp-check"><input type="checkbox" id="btn-mini"> <span data-i18n="miniTitle">Campo in miniatura</span></label>
+        <label class="fp-check"><input type="checkbox" id="fp-start-stealth"> <span data-i18n="startStealth">Apri sempre in modalità discreta</span></label>
+        <button type="button" id="fp-stealth" class="fp-wide"><span data-i18n="stealth">Modalità discreta</span> <kbd data-i18n="spaceKey">Spazio</kbd></button>
+      </section>
+    </div>
+  </div>
 
   <main>
     <!-- Home -->

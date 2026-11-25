@@ -1,0 +1,139 @@
+/* Cornice "foglio di calcolo" della pagina normale, menu File e modalità chiara/scura. */
+
+/* Colori del finto foglio di calcolo (usati anche dalla modalità discreta) */
+:root {
+  --x-bg: #ffffff; --x-text: #1f1f1f; --x-head: #f3f3f3; --x-head-text: #444444; --x-line: #d4d4d4;
+  --x-cell-line: #e6e6e6; --x-muted: #666666; --x-green: #1d6f42; --x-accent: #1d6f42; --x-input: #ffffff;
+  --x-input-line: #c6c6c6; --x-tint: #e2efda; --x-last: #fff2cc; --x-ship: #d9d9d9;
+  --col-w: 92px; --row-h: 22px; --rowh-w: 40px; --shell-h: 112px;
+}
+:root[data-mode="dark"] {
+  --x-bg: #1e1e1e; --x-text: #e4e4e4; --x-head: #2a2a2a; --x-head-text: #b8b8b8; --x-line: #3c3c3c;
+  --x-cell-line: #2c2c2c; --x-muted: #9e9e9e; --x-green: #185c37; --x-accent: #5fcf8f; --x-input: #2a2a2a;
+  --x-input-line: #4a4a4a; --x-tint: #23462f; --x-last: #4d4114; --x-ship: #4a4a4a;
+}
+:root[data-theme="sonar"] {
+  --x-bg: #020a05; --x-text: #4dff88; --x-head: #04140a; --x-head-text: #2a9e55; --x-line: #0f4d27;
+  --x-cell-line: #072713; --x-muted: #2a9e55; --x-green: #04140a; --x-accent: #4dff88; --x-input: #04140a;
+  --x-input-line: #0f4d27; --x-tint: #0b3b1d; --x-last: #1f3b10; --x-ship: #1f8f4a;
+}
+
+/* La tabella vuota fa da sfondo: righe e colonne restano ferme, il contenuto scorre sopra */
+:root body {
+  background-color: var(--x-bg);
+  background-image:
+    linear-gradient(to right, var(--x-cell-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--x-cell-line) 1px, transparent 1px);
+  background-size: var(--col-w) var(--row-h);
+  background-position: calc(var(--rowh-w) - 1px) calc(var(--shell-h) - 1px);
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+.shell {
+  position: sticky; top: 0; z-index: 50; font: 13px/1.3 Calibri, Carlito, "Segoe UI", Arial, sans-serif;
+  color: var(--x-text); background: var(--x-bg); text-shadow: none;
+}
+.shell .xl-title { gap: 10px; padding: 5px 10px; }
+.shell .xl-home { display: flex; }
+.xl-tools { margin-left: auto; display: flex; gap: 6px; }
+.xl-tool {
+  font: inherit; font-size: 12.5px; background: rgba(255, 255, 255, 0.16); color: #fff; border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 3px; padding: 2px 9px; cursor: pointer; line-height: 1.4;
+}
+.xl-tool:hover { background: rgba(255, 255, 255, 0.28); }
+.xl-tool kbd { border-color: rgba(255, 255, 255, 0.5); color: #fff; font-size: 11px; }
+.xl-menu .xl-filebtn, .stealth .xl-menu [data-file-menu] {
+  font: inherit; color: #fff; background: transparent; border: 0; padding: 6px 12px; cursor: pointer; border-radius: 3px 3px 0 0;
+}
+.xl-menu .xl-filebtn:hover, .stealth .xl-menu [data-file-menu]:hover { background: rgba(255, 255, 255, 0.18); }
+.xl-menu [aria-expanded="true"], .stealth .xl-menu [data-file-menu].open { background: rgba(0, 0, 0, 0.25) !important; font-weight: 600; }
+.shell .xl-menu span { padding: 6px 10px; }
+.shell .xl-formula { background: var(--x-bg); }
+.sheet-cols { display: flex; height: var(--row-h); background: var(--x-head); border-bottom: 1px solid var(--x-line); overflow: hidden; padding-left: var(--rowh-w); }
+.sheet-cols span { flex: none; width: var(--col-w); text-align: center; border-right: 1px solid var(--x-line); color: var(--x-head-text); line-height: var(--row-h); font-size: 12px; }
+.sheet-rows {
+  position: fixed; left: 0; top: var(--shell-h); bottom: 0; width: var(--rowh-w); z-index: 40; overflow: hidden;
+  background: var(--x-head); border-right: 1px solid var(--x-line);
+  font: 12px Calibri, Carlito, "Segoe UI", Arial, sans-serif; color: var(--x-head-text); text-shadow: none;
+}
+.sheet-rows span { display: block; height: var(--row-h); line-height: var(--row-h); text-align: center; border-bottom: 1px solid var(--x-line); }
+main { padding-left: calc(var(--rowh-w) + 16px); }
+/* Riquadri sopra la tabella: hanno un fondo pieno così si leggono bene */
+.boards, .sq-area { background: var(--surface); border: 1px solid var(--border); padding: 12px; }
+[data-theme="quaderno"] .boards, [data-theme="quaderno"] .sq-area, [data-theme="quaderno"] .card,
+[data-theme="quaderno"] .status { background: #fff; }
+
+/* ---------- Menu File ---------- */
+.file-panel {
+  position: fixed; z-index: 1100; top: 64px; left: 8px; width: 340px; max-width: calc(100vw - 16px);
+  max-height: calc(100vh - 80px); overflow: auto; background: var(--x-bg); color: var(--x-text);
+  border: 1px solid var(--x-line); box-shadow: 0 8px 28px rgba(0, 0, 0, 0.28); border-radius: 4px;
+  font: 14px/1.4 Calibri, Carlito, "Segoe UI", Arial, sans-serif; text-shadow: none;
+}
+.fp-head { display: flex; align-items: center; justify-content: space-between; background: var(--x-green); color: #fff; padding: 6px 8px 6px 12px; position: sticky; top: 0; }
+.fp-close { font: inherit; background: transparent; color: #fff; border: 0; padding: 2px 8px; cursor: pointer; border-radius: 3px; }
+.fp-close:hover { background: rgba(255, 255, 255, 0.2); }
+.fp-body { padding: 4px 12px 12px; }
+.fp-body section + section { border-top: 1px solid var(--x-line); margin-top: 10px; }
+.fp-body h3 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--x-muted); margin: 10px 0 8px; }
+.file-panel .seg { border-color: var(--x-input-line); border-radius: 3px; }
+.file-panel .seg label + label { border-left-color: var(--x-input-line); }
+.file-panel .seg span { padding: 6px 4px; font-size: 13px; }
+.file-panel .seg input:checked + span { background: var(--x-green); color: #fff; }
+.fp-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 8px 0; font-weight: 400; font-size: 14px; }
+.fp-row > span:first-child { flex: none; }
+.fp-row select, .fp-row .seg { flex: 1; max-width: 200px; }
+.file-panel select { font: inherit; padding: 5px 6px; border: 1px solid var(--x-input-line); border-radius: 3px; background: var(--x-input); color: var(--x-text); }
+.file-panel button { font: inherit; border-radius: 3px; padding: 7px 10px; border: 1px solid var(--x-input-line); background: var(--x-head); color: var(--x-text); cursor: pointer; }
+.file-panel button.primary { background: var(--x-green); border-color: var(--x-green); color: #fff; }
+.file-panel .fp-head button { border: 0; background: transparent; color: #fff; }
+.fp-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+.fp-check { display: flex; align-items: center; gap: 8px; margin: 8px 0; font-weight: 400; font-size: 14px; cursor: pointer; }
+.fp-check input { width: auto; margin: 0; }
+.fp-wide { width: 100%; margin-top: 6px; }
+.file-panel kbd { font-size: 11px; }
+
+@media (max-width: 640px) {
+  :root { --col-w: 64px; --rowh-w: 28px; }
+  .shell .xl-saved { display: none; }
+  .xl-tool kbd { display: none; }
+  .shell .xl-formula { display: none; }
+  main { padding-left: calc(var(--rowh-w) + 8px); padding-right: 8px; }
+  .boards, .sq-area { padding: 8px; }
+  .file-panel { left: 8px; right: 8px; width: auto; }
+}
+
+/* ---------- Modalità scura dei temi della pagina ---------- */
+:root[data-mode="dark"]:not([data-theme="sonar"]) {
+  --bg: #1e1e1e; --surface: #262626; --text: #e4e4e4; --muted: #a0a0a0; --border: #404040;
+  --accent: #3f9c6a; --accent-text: #ffffff; --sea: #2c2c2c; --sea-hover: #363636; --ship: #6c6c6c;
+  --miss: #8a8a8a; --hit: #b5534f; --sunk: #e06a5e; --ok: #4fb57e; --preview: #2f5a3e; --bad: #5a2f2e;
+  --sq-light: #6b6b6b; --sq-dark: #4a4a4a; --sq-last: rgba(255, 196, 0, 0.28); --sq-mark: #6fd39b;
+}
+:root[data-mode="dark"][data-theme="excel"] { --sq-dark: #4d7a5c; --sq-light: #8a8a8a; }
+[data-mode="dark"][data-theme="excel"] .status.turn { background: #23462f; color: #9be3b7; border-color: #2f6a45; }
+[data-mode="dark"][data-theme="excel"] .label { background: #2a2a2a; color: #b8b8b8; border-color: #3c3c3c; }
+[data-mode="dark"][data-theme="excel"] .cell, [data-mode="dark"][data-theme="excel"] .sq { border-color: #3c3c3c; }
+[data-mode="dark"][data-theme="excel"] .board, [data-mode="dark"][data-theme="excel"] .sqboard { border-color: #3c3c3c; }
+[data-mode="dark"][data-theme="excel"] .card, [data-mode="dark"][data-theme="excel"] .status { border-color: #404040; }
+[data-mode="dark"][data-theme="excel"] .cell.hit::after { color: #fff; }
+/* Disegno tecnico e quaderno al buio: tratti chiari su fondo scuro */
+[data-mode="dark"][data-theme="tecnico"] main { border-color: #ddd; outline-color: #ddd; }
+[data-mode="dark"][data-theme="tecnico"] .board-wrap, [data-mode="dark"][data-theme="tecnico"] .board-wrap::after,
+[data-mode="dark"][data-theme="tecnico"] .board, [data-mode="dark"][data-theme="tecnico"] .cell,
+[data-mode="dark"][data-theme="tecnico"] .sqboard, [data-mode="dark"][data-theme="tecnico"] .sq { border-color: #cfcfcf; }
+[data-mode="dark"][data-theme="tecnico"] .cell.ship { background: repeating-linear-gradient(45deg, #ddd 0 1px, transparent 1px 5px); }
+[data-mode="dark"][data-theme="tecnico"] .cell.sunk { background: #ddd; }
+[data-mode="dark"][data-theme="tecnico"] .cell.miss::after { background: #ddd; }
+[data-mode="dark"][data-theme="tecnico"] .sq.dark { background: repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.3) 0 1px, transparent 1px 6px), var(--sq-light); }
+[data-mode="dark"][data-theme="quaderno"] .boards, [data-mode="dark"][data-theme="quaderno"] .sq-area,
+[data-mode="dark"][data-theme="quaderno"] .card, [data-mode="dark"][data-theme="quaderno"] .status { background: #262626; }
+[data-mode="dark"][data-theme="quaderno"] .board, [data-mode="dark"][data-theme="quaderno"] .sqboard { border-color: #ddd; background: transparent; }
+[data-mode="dark"][data-theme="quaderno"] .cell.ship { background: repeating-linear-gradient(-35deg, #ddd 0 2px, transparent 2px 6px); }
+[data-mode="dark"][data-theme="quaderno"] .cell.sunk { background: #ddd; }
+[data-mode="dark"][data-theme="quaderno"] .cell.hit::after { color: #eee; }
+[data-mode="dark"][data-theme="quaderno"] .sq.dark { background: repeating-linear-gradient(-35deg, rgba(255, 255, 255, 0.3) 0 1px, transparent 1px 6px); }
+[data-mode="dark"] .disc.b { border-color: #777; }
+[data-mode="dark"] .pc.b { color: #111; -webkit-text-stroke: 0.045em #e6e6e6; paint-order: stroke fill; }
+.stealth .xl-title .xl-tool { margin-left: 0; flex: none; }
+@media (max-width: 640px) { .stealth .xl-title .xl-tool { margin-left: auto; } }

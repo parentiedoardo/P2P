@@ -16,22 +16,6 @@
   --preview: #b9d3c3;
   --bad: #efc6c4;
 }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme]), :root[data-theme="mare"] {
-    --bg: #16191d;
-    --surface: #1e2227;
-    --text: #d8dde3;
-    --muted: #8b949e;
-    --border: #30363d;
-    --accent: #6f8fae;
-    --sea: #262b31;
-    --sea-hover: #2f353c;
-    --ship: #6b7682;
-    --miss: #59636e;
-    --preview: #3d5a48;
-    --bad: #5a2f2e;
-  }
-}
 
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }

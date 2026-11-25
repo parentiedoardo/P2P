@@ -27,7 +27,12 @@ Gira su Cloudflare Workers + Durable Objects (piano gratuito).
 - **P1P**: gioca da solo contro il PC (tutto nel browser, la partita resta salvata se ricarichi). Anche a Scacchi e Dama, con il tempo per turno.
 
 ### Aspetto e discrezione
-- Temi dal menu in alto: Ufficio, Foglio di calcolo (predefinito), Disegno tecnico, Quaderno a quadretti, Sonar. Il browser lo ricorda.
+- La pagina ha sempre la cornice di un foglio di calcolo: la tabella vuota fa da sfondo e il modulo o la partita stanno sopra.
+- Menu **File** (in alto a sinistra, anche in modalità discreta): resta aperto finché non lo chiudi (✕, File o Esc) e contiene
+  nuova sessione (gioco, tempo, P2P/P1P), tema, chiaro/scuro, lingua, miniatura, modalità discreta.
+- Pulsante ☾/☀ per la modalità **chiara/scura** (vale anche per il finto foglio di calcolo).
+- **Ricomincia** (con doppia conferma) riporta alla scelta iniziale del gioco; in P2P l'avversario riceve un avviso.
+- Temi: Ufficio, Foglio di calcolo (predefinito), Disegno tecnico, Quaderno a quadretti, Sonar. Il browser lo ricorda.
 - **Miniatura**: campo piccolo, con le due griglie affiancate.
 - Lingua: italiano o inglese (anche email e notifiche).
 - **Barra spaziatrice** (o il pulsante "Modalità discreta"): copre tutto con un finto foglio di calcolo.

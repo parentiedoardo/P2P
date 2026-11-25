@@ -213,6 +213,11 @@ export class GameRoom extends DurableObject {
           this.sendInfo({ code: 'restarted', name: player.name }, (i) => i !== idx);
           return;
         }
+        case 'leave': {
+          // Il giocatore è tornato alla scelta del gioco: lo diciamo all'altro.
+          this.sendInfo({ code: 'left', name: player.name }, (i) => i !== idx);
+          return;
+        }
         case 'seen': {
           // Il giocatore ha la scheda aperta e visibile: niente promemoria per questo turno.
           player.seenAt = Date.now();

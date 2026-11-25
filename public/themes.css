@@ -199,6 +199,3 @@
 [data-theme="sonar"] .pc.b { color: #ff7a59; text-shadow: 0 0 6px rgba(255, 122, 89, 0.6); }
 [data-theme="sonar"] .disc.w { background: #b8ffd0; box-shadow: 0 0 8px rgba(77, 255, 136, 0.7); }
 [data-theme="sonar"] .disc.b { background: #ff7a59; border-color: #4a1000; box-shadow: 0 0 8px rgba(255, 122, 89, 0.6); }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme]), :root[data-theme="mare"] { --sq-light: #3a424b; --sq-dark: #262b31; --sq-mark: #8fb3d6; }
-}

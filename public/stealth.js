@@ -299,8 +299,8 @@ function build() {
   const s = S();
   sheets = buildSheets();
   root().innerHTML = `
-    <div class="xl-title"><img class="xl-logo" src="/favicon.svg" alt="" title="P2P"><span class="xl-qa">💾 ↶ ↷</span><span class="xl-file">${s.file}</span><span class="xl-saved">· ${s.saved}</span><span class="xl-search">🔍 ${s.search}</span></div>
-    <div class="xl-menu">${s.menu.map((m, i) => `<span${i === 1 ? ' class="on"' : ''}>${m}</span>`).join('')}</div>
+    <div class="xl-title"><img class="xl-logo" src="/favicon.svg" alt="" title="P2P"><span class="xl-qa">💾 ↶ ↷</span><span class="xl-file">${s.file}</span><span class="xl-saved">· ${s.saved}</span><span class="xl-search">🔍 ${s.search}</span><span class="xl-tool" data-mode-toggle role="button">${document.documentElement.dataset.mode === 'dark' ? '☀' : '☾'}</span></div>
+    <div class="xl-menu">${s.menu.map((m, i) => (i === 0 ? `<span data-file-menu>${m}</span>` : `<span${i === 1 ? ' class="on"' : ''}>${m}</span>`)).join('')}</div>
     <div class="xl-ribbon">
       <div class="grp"><b>📋</b><small>${s.groups[0]}</small></div>
       <div class="grp wide"><span class="fake-input">Calibri</span><span class="fake-input s">11</span><span class="b"><b>${lang === 'en' ? 'B' : 'G'}</b></span><span class="b"><i>${lang === 'en' ? 'I' : 'C'}</i></span><span class="b"><u>${lang === 'en' ? 'U' : 'S'}</u></span><small>${s.groups[1]}</small></div>
