@@ -28,7 +28,7 @@ jobs:
         run: |
           URL=https://p2p.parentiedoardo.workers.dev
           check() {
-            curl -fsS "$URL/" | grep -q "Battaglia navale" &&
+            curl -fsS "$URL/" | grep -q "<title>P2P</title>" &&
             curl -fsS "$URL/api/config" | grep -q vapidPublicKey &&
             curl -fsS -X POST "$URL/api/games" -H 'content-type: application/json' -d '{"name":"Verifica"}' | grep -q gameId
           }
