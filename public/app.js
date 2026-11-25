@@ -2,6 +2,7 @@ import { SIZE, FLEET, fits, randomFleet, shipCells, validateFleet } from '/engin
 import { t, lang, setLang, applyStatic, shipName, errorText } from '/i18n.js';
 import * as Stealth from '/stealth.js';
 import * as Shell from '/shell.js';
+import * as Tour from '/tour.js';
 import { LocalGame, LocalMatch } from '/local.js';
 import * as BoardUI from '/boardui.js';
 import { warnBeforeMs, cleanKind, cleanTurnSeconds } from '/games/match.js';
@@ -45,6 +46,37 @@ const isBoard = (v) => BoardUI.isBoardKind(v?.kind);
 // ---------- Schermate ----------
 function show(screen) {
   for (const s of ['home', 'join', 'game']) $('screen-' + s).hidden = s !== screen;
+  if (screen === 'home') setTimeout(() => startTour(), 400);
+}
+
+// ---------- "Come funziona" ----------
+const step = (key, targets) => ({ title: t(key + 'T'), text: t(key), targets });
+const homeSteps = () => [
+  step('tourWelcome', []),
+  step('tourName', ['#name-create', '#email-create']),
+  step('tourGame', ['#form-create .seg']),
+  step('tourTime', ['#turn-time']),
+  step('tourStart', ['#form-create button[type=submit]', '#btn-solo']),
+  step('tourStealth', ['#btn-stealth']),
+  step('tourMode', ['#btn-mode']),
+  step('tourFile', ['.shell [data-file-menu]']),
+];
+const gameSteps = () => [
+  step('tourStatus', ['#status', '#clock']),
+  step('tourShare', ['#share']),
+  step('tourPlace', ['#placement']),
+  step('tourBoard', ['.boards', '#sq-area']),
+  step('tourNotify', ['#notify']),
+  step('tourRestart', ['#btn-restart']),
+  step('tourStealth', ['#btn-stealth']),
+  step('tourFile', ['.shell [data-file-menu]']),
+];
+
+/** Mostra il tour della schermata corrente (la prima volta, o sempre con force). */
+function startTour(force = false) {
+  if (!force && (Stealth.isActive() || document.documentElement.classList.contains('stealth-boot') || Shell.isFileOpen())) return;
+  if (!$('screen-home').hidden) Tour.start('home', homeSteps(), { force });
+  else if (!$('screen-game').hidden && state) Tour.start('game', gameSteps(), { force });
 }
 
 function toast(text) {
@@ -267,6 +299,7 @@ function onState(next) {
   if (prev && !prev.myTurn && next.myTurn && document.visibilityState !== 'visible') localNotify(turnText(next));
   markSeen();
   render();
+  if (!prev) setTimeout(() => startTour(), 500);
 }
 
 /** Dice al server che il giocatore sta guardando la partita nel suo turno (niente promemoria). */
@@ -678,6 +711,11 @@ setMini(document.documentElement.classList.contains('mini'));
 $('btn-mini').addEventListener('change', (e) => setMini(e.target.checked));
 
 $('btn-stealth').addEventListener('click', (e) => { e.currentTarget.blur(); Stealth.toggle(true); });
+$('fp-tour').addEventListener('click', () => {
+  Shell.closeFile();
+  if (Stealth.isActive()) Stealth.toggle(false);
+  setTimeout(() => startTour(true), 50);
+});
 $('fp-stealth').addEventListener('click', (e) => { e.currentTarget.blur(); Stealth.toggle(); });
 Shell.init();
 

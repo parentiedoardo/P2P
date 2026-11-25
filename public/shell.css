@@ -137,3 +137,28 @@ main { padding-left: calc(var(--rowh-w) + 16px); }
 [data-mode="dark"] .pc.b { color: #111; -webkit-text-stroke: 0.045em #e6e6e6; paint-order: stroke fill; }
 .stealth .xl-title .xl-tool { margin-left: 0; flex: none; }
 @media (max-width: 640px) { .stealth .xl-title .xl-tool { margin-left: auto; } }
+
+/* ---------- Tour "Come funziona" ---------- */
+.tour { position: fixed; inset: 0; z-index: 1300; font: 14px/1.45 Calibri, Carlito, "Segoe UI", Arial, sans-serif; text-shadow: none; }
+.tour-hole {
+  position: fixed; border-radius: 6px; pointer-events: none;
+  box-shadow: 0 0 0 2px #fff, 0 0 0 200vmax rgba(0, 0, 0, 0.62);
+  transition: top 0.25s ease, left 0.25s ease, width 0.25s ease, height 0.25s ease;
+}
+.tour-card {
+  position: fixed; background: var(--x-bg); color: var(--x-text); border: 1px solid var(--x-line); border-top: 4px solid var(--x-green);
+  border-radius: 6px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35); padding: 10px 14px 10px;
+  transition: top 0.25s ease, left 0.25s ease;
+}
+.tour-top { display: flex; justify-content: space-between; align-items: center; color: var(--x-muted); font-size: 12px; }
+.tour-x { background: transparent; border: 0; color: var(--x-muted); cursor: pointer; padding: 2px 6px; font: inherit; border-radius: 3px; }
+.tour-x:hover { background: var(--x-head); }
+.tour-title { margin: 4px 0 4px; font-size: 16px; }
+.tour-text { margin: 0 0 12px; }
+.tour-nav { display: flex; justify-content: flex-end; gap: 8px; }
+.tour-nav button { font: inherit; padding: 6px 14px; border-radius: 3px; border: 1px solid var(--x-input-line); background: var(--x-head); color: var(--x-text); cursor: pointer; }
+.tour-nav button.primary { background: var(--x-green); border-color: var(--x-green); color: #fff; font-weight: 600; }
+.tour-nav button:disabled { opacity: 0.45; cursor: default; }
+.tour-foot { display: flex; justify-content: space-between; margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--x-line); }
+.tour-link { background: transparent; border: 0; padding: 2px 0; color: var(--x-accent); cursor: pointer; font: inherit; font-size: 13px; text-decoration: underline; }
+@media (prefers-reduced-motion: reduce) { .tour-hole, .tour-card { transition: none; } }

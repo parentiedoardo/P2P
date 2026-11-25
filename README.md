@@ -30,6 +30,7 @@ Gira su Cloudflare Workers + Durable Objects (piano gratuito).
 - La pagina ha sempre la cornice di un foglio di calcolo: la tabella vuota fa da sfondo e il modulo o la partita stanno sopra.
 - Menu **File** (in alto a sinistra, anche in modalità discreta): resta aperto finché non lo chiudi (✕, File o Esc) e contiene
   nuova sessione (gioco, tempo, P2P/P1P), tema, chiaro/scuro, lingua, miniatura, modalità discreta.
+- **Come funziona**: tour guidato in sovrimpressione (pagina oscurata, in risalto la parte spiegata) alla prima apertura della pagina iniziale e della partita; Indietro, Avanti, Chiudi, Non ricordarmelo più. Si rivede da File → Come funziona.
 - Pulsante ☾/☀ per la modalità **chiara/scura** (vale anche per il finto foglio di calcolo).
 - **Ricomincia** (con doppia conferma) riporta alla scelta iniziale del gioco; in P2P l'avversario riceve un avviso.
 - Temi: Ufficio, Foglio di calcolo (predefinito), Disegno tecnico, Quaderno a quadretti, Sonar. Il browser lo ricorda.
