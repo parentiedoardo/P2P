@@ -175,6 +175,18 @@ export class GameRoom extends DurableObject {
           E.fire(this.game, idx, msg.x, msg.y);
           break;
         }
+        case 'restart': {
+          E.resetGame(this.game);
+          this.game.remindedFor = null;
+          await this.save();
+          this.broadcast();
+          await this.onTurnChanged();
+          const other = this.ctx.getWebSockets().filter((s) => this.ctx.getTags(s)[0] !== String(idx));
+          for (const s of other) {
+            try { s.send(JSON.stringify({ type: 'info', code: 'restarted', name: player.name })); } catch {}
+          }
+          return;
+        }
         case 'seen': {
           // Il giocatore ha la scheda aperta e visibile: niente promemoria per questo turno.
           player.seenAt = Date.now();

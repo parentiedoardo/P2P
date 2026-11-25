@@ -158,6 +158,19 @@ export function fire(game, idx, x, y, now = Date.now()) {
   return { result, len: target?.len, gameOver };
 }
 
+/** Ricomincia da capo: stessi giocatori, navi da riposizionare. */
+export function resetGame(game) {
+  for (const p of game.players) {
+    p.ships = null;
+    p.shots = [];
+  }
+  game.phase = game.players.length === 2 ? 'placing' : 'waiting';
+  game.turn = 0;
+  game.winner = null;
+  game.turnStartedAt = null;
+  game.lastShot = null;
+}
+
 /** Vista della partita per il giocatore `idx`: nasconde le navi avversarie non affondate. */
 export function viewFor(game, idx) {
   const me = game.players[idx];

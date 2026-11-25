@@ -109,6 +109,7 @@ function connect() {
     const msg = JSON.parse(ev.data);
     if (msg.type === 'state') onState(msg.state);
     else if (msg.type === 'error') onError(msg.code, msg.message);
+    else if (msg.type === 'info' && msg.code === 'restarted') { draft = []; toast(t('restarted', { name: msg.name })); }
   };
   ws.onclose = (ev) => {
     if (ev.code === 4403) {
@@ -304,6 +305,7 @@ function render() {
   paint($('board-opp'), theirs);
   $('board-opp').classList.toggle('clickable', state.myTurn && !pending);
   document.querySelector('.boards').classList.toggle('playing', state.phase === 'playing');
+  document.querySelector('.boards').classList.toggle('setup', state.phase === 'waiting' || state.phase === 'placing');
   $('board-opp').classList.toggle('dim', state.phase === 'playing' && !state.myTurn);
 
   setStatus(statusText(), state.myTurn);
@@ -341,6 +343,11 @@ const actions = {
   clear() { draft = []; render(); },
   ready() { if (validateFleet(draft) === null) send({ type: 'place', ships: draft }); },
   rematch() { if (local) { draft = []; local.restart(); } else location.href = '/'; },
+  restart() {
+    draft = [];
+    if (local) local.restart();
+    else send({ type: 'restart' });
+  },
 };
 
 $('btn-rotate').addEventListener('click', actions.rotate);
@@ -348,6 +355,20 @@ $('btn-random').addEventListener('click', actions.random);
 $('btn-clear').addEventListener('click', actions.clear);
 $('btn-ready').addEventListener('click', actions.ready);
 $('btn-rematch').addEventListener('click', actions.rematch);
+
+// "Ricomincia" con doppia conferma: il primo clic chiede "Sei sicuro?", il secondo (entro 4 s) conferma.
+{
+  const btn = $('btn-restart');
+  let timer = null;
+  const reset = () => { clearTimeout(timer); timer = null; btn.textContent = t('restart'); btn.classList.remove('confirm'); };
+  btn.addEventListener('click', () => {
+    btn.blur();
+    if (timer) { reset(); actions.restart(); return; }
+    btn.textContent = t('sure');
+    btn.classList.add('confirm');
+    timer = setTimeout(reset, 4000);
+  });
+}
 $('btn-copy').addEventListener('click', async () => {
   try { await navigator.clipboard.writeText($('share-link').value); toast(t('linkCopied')); }
   catch { $('share-link').select(); }

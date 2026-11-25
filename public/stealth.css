@@ -64,6 +64,13 @@ body.stealth-on { overflow: hidden; }
 .xl-grid td.g-cmd:hover { background: #e2efda; }
 .xl-grid td.g-primary { background: #1d6f42; color: #fff; }
 .xl-grid td.g-status { overflow: visible; color: #444; padding: 0 2px; }
+.xl-grid td .g-text { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; position: relative; z-index: 1; background: #fff; }
+.xl-grid td.g-danger { background: #c00000; color: #fff; }
+.xl-grid td.g-cmdbar { overflow: visible; padding: 0; }
+.g-bar { position: absolute; left: 0; top: 1px; display: flex; gap: 4px; z-index: 1; }
+.g-btn { background: #f3f3f3; border: 1px solid #b7b7b7; padding: 0 8px; line-height: 17px; cursor: pointer; white-space: nowrap; }
+.g-btn.g-primary { background: #1d6f42; border-color: #1d6f42; color: #fff; }
+.g-btn.g-danger { background: #c00000; border-color: #c00000; color: #fff; }
 .xl-grid td.g-turn { color: #1d6f42; font-weight: 700; }
 
 .xl-tabs { display: flex; background: #f3f3f3; border-top: 1px solid #d4d4d4; white-space: nowrap; overflow-x: auto; scrollbar-width: none; flex: none; }

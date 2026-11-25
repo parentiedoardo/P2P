@@ -45,6 +45,9 @@ const DICT = {
     offline: 'Non connesso',
     newGame: 'Nuova partita',
     rematch: 'Rivincita',
+    restart: 'Ricomincia',
+    sure: 'Sei sicuro?',
+    restarted: '{name} ha ricominciato la partita da capo.',
 
     notifyTitle: 'Notifiche e promemoria',
     notifyIntro: 'Quando tocca a te ricevi una notifica nel browser. Se dopo 5 minuti non hai ancora aperto la sessione, ti mandiamo un\'email con la situazione e il link.',
@@ -60,7 +63,7 @@ const DICT = {
     emailSaved: 'Email salvata.',
     emailOff: 'Promemoria via email disattivati.',
 
-    placeHint: 'Posiziona: {ship} ({len} caselle), {dir}. Clicca una nave già messa per toglierla.',
+    placeHint: 'Posiziona: {ship} ({len} caselle), {dir}. Tocca una nave già messa per toglierla.',
     horizontal: 'orizzontale',
     vertical: 'verticale',
     fleetComplete: 'Flotta completa. Premi "Pronto" per confermarla.',
@@ -145,6 +148,9 @@ const DICT = {
     offline: 'Offline',
     newGame: 'New game',
     rematch: 'Rematch',
+    restart: 'Restart',
+    sure: 'Are you sure?',
+    restarted: '{name} restarted the game from scratch.',
 
     notifyTitle: 'Notifications and reminders',
     notifyIntro: "When it's your turn you get a browser notification. If you haven't opened the session after 5 minutes, we email you the board and the link.",

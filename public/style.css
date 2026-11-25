@@ -159,3 +159,44 @@ form.inline { margin-top: 16px; }
   .mini .boards { gap: 8px; }
   .mini .board { width: 160px; max-width: 160px; }
 }
+
+/* Riga di stato con il pulsante Ricomincia */
+.status-row { display: flex; gap: 8px; align-items: stretch; margin-bottom: 16px; }
+.status-row .status { flex: 1; margin-bottom: 0; min-width: 0; }
+.restart { flex: none; font-size: 0.85rem; color: var(--muted); }
+.restart.confirm { background: var(--hit); border-color: var(--hit); color: #fff; font-weight: 600; }
+.mini .status-row { margin-bottom: 10px; }
+.mini .restart { font-size: 0.75rem; padding: 4px 8px; }
+
+/* Telefono: tutto deve stare nello schermo senza cercare i pulsanti */
+@media (max-width: 640px) {
+  .top { flex-wrap: nowrap; padding: 6px 10px; }
+  .top .brand { font-size: 0.95rem; flex: none; }
+  .top-tools { gap: 4px; min-width: 0; }
+  .top select { font-size: 0.8rem; padding: 5px 4px; min-width: 0; }
+  #theme { width: 96px; }
+  #lang { width: 50px; }
+  .top button { padding: 5px 8px; min-width: 34px; }
+  main { padding: 10px; }
+  .status-row { margin-bottom: 10px; }
+  .status { font-size: 0.92rem; padding: 8px 10px; }
+  .restart { font-size: 0.78rem; padding: 4px 8px; }
+  .card { padding: 10px; margin-bottom: 10px; }
+  .placement p { margin: 0 0 8px; font-size: 0.85rem; }
+  .placement .row { flex-wrap: nowrap; gap: 6px; }
+  .placement .row button { flex: 1 1 0; min-width: 0; padding: 8px 4px; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .boards { gap: 12px; }
+  .board-wrap h2 { margin-bottom: 4px; font-size: 0.9rem; }
+  /* La griglia non supera l'altezza disponibile, così resta visibile insieme ai pulsanti */
+  .board { width: min(100%, 52svh); margin: 0 auto; }
+  .board-wrap h2 { justify-content: flex-start; }
+  /* Durante la partita la tua flotta diventa piccola: conta la griglia dove si spara */
+  .boards.playing #wrap-me .board { width: min(60%, 200px); margin: 0; }
+  .share p { margin: 0 0 6px; font-size: 0.85rem; }
+  /* Mentre si schierano le navi la griglia avversaria (vuota) non serve */
+  .boards.setup #wrap-opp { display: none; }
+}
+@media (max-width: 360px) {
+  .top .brand span, .top .brand { font-size: 0.85rem; }
+  #theme { width: 84px; }
+}

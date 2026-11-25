@@ -36,8 +36,7 @@ const L = {
       '- Prossimo incontro: martedì ore 10:00',
     ],
     you: 'Tu',
-    cmdRandom: 'Casuale', cmdRotate: 'Ruota', cmdClear: 'Svuota', cmdReady: 'Pronto', cmdRematch: 'Rivincita', cmdNew: 'Nuova',
-    gameHint: 'Riepilogo →',
+    cmdRandom: 'Casuale', cmdRotate: 'Ruota', cmdClear: 'Svuota', cmdReady: 'Pronto', cmdRematch: 'Rivincita', cmdNew: 'Nuova', cmdRestart: 'Ricomincia', cmdSure: 'Sei sicuro?',
   },
   en: {
     file: 'Q4_2026_Cost_Report.xlsx',
@@ -71,8 +70,7 @@ const L = {
       '- Next meeting: Tuesday 10:00',
     ],
     you: 'You',
-    cmdRandom: 'Random', cmdRotate: 'Rotate', cmdClear: 'Clear', cmdReady: 'Ready', cmdRematch: 'Rematch', cmdNew: 'New',
-    gameHint: 'Summary →',
+    cmdRandom: 'Random', cmdRotate: 'Rotate', cmdClear: 'Clear', cmdReady: 'Ready', cmdRematch: 'Rematch', cmdNew: 'New', cmdRestart: 'Restart', cmdSure: 'Are you sure?',
   },
 };
 const ITEMS = {
@@ -80,13 +78,39 @@ const ITEMS = {
   en: ['Raw materials', 'Semi-finished goods', 'Packaging', 'Electricity', 'Natural gas', 'Plant maintenance', 'Spare parts', 'Inbound freight', 'Outbound freight', 'Warehouse logistics', 'Technical consulting', 'Legal fees', 'Software licenses', 'Hardware', 'Telephony', 'Training', 'Travel', 'Insurance', 'Rent', 'Cleaning', 'Security', 'Digital marketing', 'Trade fairs', 'Samples', 'Waste disposal', 'ISO certification', 'Testing', 'Test lab', 'Equipment rental', 'Stationery', 'Bank fees', 'Commissions', 'Lease payments', 'Water', 'Canteen', 'Health and safety', 'R&D', 'Patents', 'Supplier quality', 'Internal audit'],
 };
 const CDC = ['PRD', 'LOG', 'AMM', 'ICT', 'QUA', 'COM', 'R&S'];
-const SHEETS = ['report', 'budget', 'mov', 'y2025', 'note'];
+const ALL_SHEETS = ['report', 'budget', 'mov', 'y2025', 'note'];
+const PHONE_SHEETS = ['report', 'note'];
+const isPhone = () => window.matchMedia('(max-width: 640px)').matches;
+const sheetList = () => (isPhone() ? PHONE_SHEETS : ALL_SHEETS);
 
 const NCOLS = 40;
 const COLS = Array.from({ length: NCOLS }, (_, i) => (i < 26 ? '' : 'A') + String.fromCharCode(65 + (i % 26)));
 const ROWS = 50;
-// Foglio Note: griglia avversaria da R5 (colonna 17), propria da AD5 (colonna 29).
-const G = { oppCol: 17, meCol: 29, top: 5, head: 4, title: 3, cmdRow: 16, hintRow: 17, statusRow: 18, flashRow: 19 };
+// Disposizione del campo nel foglio Note.
+// PC: comandi e riepilogo da N5, griglia avversaria da R5, propria da AD5 (si vedono scorrendo a destra).
+// Telefono: tutto a partire dalla colonna B, griglie una sotto l'altra, senza scorrere a destra.
+const LAYOUT = {
+  pc: {
+    opp: { col: 17, title: 3, head: 4, top: 5 },
+    me: { col: 29, title: 3, head: 4, top: 5 },
+    cmds: { col: 13, row: 5, vertical: true },
+    status: 'N11', hint: 'N12', flash: 'N13',
+    area: { c0: 13, r0: 3, c1: 39, r1: 16 },
+    textWidth: 280,
+    gameColsFrom: 15, // da P in poi colonne strette
+  },
+  phone: {
+    status: 'B1',
+    opp: { col: 1, title: 2, head: 3, top: 4 },
+    cmds: { col: 1, row: 14, vertical: false },
+    me: { col: 1, title: 16, head: 17, top: 18 },
+    hint: 'B28', flash: 'B29',
+    area: { c0: 0, r0: 1, c1: 11, r1: 29 },
+    textWidth: 320,
+    gameColsFrom: 0,
+  },
+};
+const layout = () => (isPhone() ? LAYOUT.phone : LAYOUT.pc);
 
 const S = () => L[lang] || L.it;
 
@@ -108,7 +132,7 @@ function reportSheet(seed, title) {
   set('A2', s.subtitle, null, 'muted');
   s.head.forEach((h, i) => set(COLS[i] + '4', h, null, 'head'));
   const first = 5;
-  const items = ITEMS[lang] || ITEMS.it;
+  const items = (ITEMS[lang] || ITEMS.it).slice(0, isPhone() ? 10 : undefined);
   const last = first + items.length - 1;
   const sums = {};
   const add = (c, n) => (sums[c] = (sums[c] || 0) + n);
@@ -177,22 +201,22 @@ function noteSheet() {
   const s = S();
   const cells = {};
   const set = (ref, v, cls = '') => (cells[ref] = { v, f: v, cls });
+  if (isPhone()) return cells; // sul telefono il foglio Note mostra subito il campo
   set('A1', s.noteTitle, 'title');
   s.notes.forEach((n, i) => set(`A${3 + i}`, n, 'muted-strong'));
-  set(`F${3 + s.notes.length + 2}`, '', '');
-  set('N4', s.gameHint, 'hint');
   return cells;
 }
 
 function buildSheets() {
   const s = S();
-  return {
-    report: reportSheet(20261124, s.reportTitle),
-    budget: reportSheet(20270101, s.budgetTitle),
-    mov: movSheet(20261101),
-    y2025: reportSheet(20251231, s.y2025Title),
-    note: noteSheet(),
+  const all = {
+    report: () => reportSheet(20261124, s.reportTitle),
+    budget: () => reportSheet(20270101, s.budgetTitle),
+    mov: () => movSheet(20261101),
+    y2025: () => reportSheet(20251231, s.y2025Title),
+    note: () => noteSheet(),
   };
+  return Object.fromEntries(sheetList().map((k) => [k, all[k]()]));
 }
 
 // ---------- Stato ----------
@@ -272,7 +296,7 @@ function build() {
     </div>
     <div class="xl-formula"><span class="xl-name" id="xl-name"></span><span class="xl-fx">ƒx</span><span class="xl-f" id="xl-f"></span></div>
     <div class="xl-grid-wrap" id="xl-wrap"><table class="xl-grid" id="xl-grid"></table></div>
-    <div class="xl-tabs" id="xl-tabs"><span class="nav">◀ ▶</span>${SHEETS.map((k) => `<span data-sheet="${k}">${s.tabs[k]}</span>`).join('')}<span>+</span></div>
+    <div class="xl-tabs" id="xl-tabs"><span class="nav">◀ ▶</span>${sheetList().map((k) => `<span data-sheet="${k}">${s.tabs[k]}</span>`).join('')}<span>+</span></div>
     <div class="xl-status"><span id="xl-ready"></span><span id="xl-sum"></span><span class="xl-zoom">▦ ▤ ▥ &nbsp; − ——●—— + 100%</span></div>`;
   q('.xl-logo').addEventListener('click', () => toggle(false));
   q('#xl-tabs').addEventListener('click', (e) => {
@@ -286,6 +310,7 @@ function build() {
     if (td && !isGameCell(td.dataset.ref)) startEdit(td.dataset.ref, null);
   });
   built = true;
+  if (!sheetList().includes(current)) current = 'report';
   showSheet(current);
 }
 
@@ -297,17 +322,21 @@ function showSheet(key) {
   const cells = sheets[key];
   const mine = edits[key] || {};
   // Larghezze esplicite: con table-layout fixed la tabella deve avere la somma esatta.
-  const narrow = window.matchMedia('(max-width: 640px)').matches;
-  const W = { 'c-std': 92, 'c-wide': narrow ? 150 : 190, 'c-game': 24 };
-  let total = 40;
-  const parts = ['<colgroup><col style="width:40px">'];
+  const narrow = isPhone();
+  const W = { 'c-std': 92, 'c-wide': narrow ? 150 : 190, 'c-game': narrow ? 28 : 24 };
+  const rowh = narrow ? 30 : 40;
+  let total = rowh;
+  const parts = [`<colgroup><col style="width:${rowh}px">`];
+  const L = layout();
   for (let c = 0; c < NCOLS; c++) {
     let cls = 'c-std';
     if (key !== 'note' && c === 1) cls = 'c-wide';
     if (key === 'mov' && (c === 2 || c === 3)) cls = 'c-wide';
-    if (key === 'note' && c >= G.oppCol - 1) cls = 'c-game';
-    total += W[cls];
-    parts.push(`<col style="width:${W[cls]}px">`);
+    if (key === 'note' && (narrow ? c <= 10 : c >= L.gameColsFrom)) cls = 'c-game';
+    // PC, foglio Note: colonne N e O più larghe per comandi e riepilogo
+    const w = key === 'note' && !narrow && (c === 13 || c === 14) ? 130 : W[cls];
+    total += w;
+    parts.push(`<col style="width:${w}px">`);
   }
   parts.push('</colgroup><thead><tr><th class="corner"></th>');
   for (const c of COLS) parts.push(`<th>${c}</th>`);
@@ -407,37 +436,59 @@ function move(dc, dr) {
 function isGameCell(ref) {
   if (current !== 'note') return false;
   const { c, r } = parseRef(ref);
-  return c >= G.oppCol - 1 && r >= G.title && r <= G.flashRow;
+  const a = layout().area;
+  return c >= a.c0 && c <= a.c1 && r >= a.r0 && r <= a.r1;
 }
+
+// "Ricomincia" chiede conferma: il primo tocco cambia la scritta, il secondo (entro 4 s) conferma.
+let confirmUntil = 0;
 
 function paintGame() {
   if (!hooks || !built || current !== 'note') return;
   const state = hooks.getState();
   const s = S();
+  const L = layout();
   // Pulisce l'area di gioco
-  for (let r = G.title; r <= G.flashRow; r++) {
-    for (let c = G.oppCol - 1; c < NCOLS; c++) {
+  for (let r = L.area.r0; r <= L.area.r1; r++) {
+    for (let c = L.area.c0; c <= L.area.c1; c++) {
       const cell = td(refOf(c, r));
-      if (cell) { cell.textContent = ''; cell.className = cell.classList.contains('sel') ? 'sel' : ''; delete cell.dataset.cmd; delete cell.dataset.gx; }
+      if (!cell) continue;
+      const sel = cell.classList.contains('sel');
+      cell.textContent = '';
+      cell.className = sel ? 'sel' : '';
+      delete cell.dataset.cmd;
+      delete cell.dataset.gx;
     }
   }
   const put = (c, r, text, cls = '', extra = {}) => {
     const cell = td(refOf(c, r));
-    if (!cell) return;
+    if (!cell) return null;
     cell.textContent = text;
-    if (cls) cell.classList.add(...cls.split(' '));
+    if (cls) cell.classList.add(...cls.split(' ').filter(Boolean));
     Object.assign(cell.dataset, extra);
+    return cell;
+  };
+  const putText = (ref, text, cls = '') => {
+    const { c, r } = parseRef(ref);
+    const cell = put(c, r, '', 'g-status ' + cls);
+    if (!cell) return;
+    const span = document.createElement('span');
+    span.className = 'g-text';
+    span.style.width = L.textWidth + 'px';
+    span.textContent = text;
+    span.title = text;
+    cell.appendChild(span);
   };
   const LET = 'ABCDEFGHIJ';
-  const drawBoard = (col, title, cellMarks, side, clickable) => {
-    put(col, G.title, title, 'g-title');
-    for (let x = 0; x < 10; x++) put(col + x, G.head, LET[x], 'g-head');
+  const drawBoard = (b, title, cellMarks, side, clickable) => {
+    put(b.col, b.title, title, 'g-title');
+    for (let x = 0; x < 10; x++) put(b.col + x, b.head, LET[x], 'g-head');
     for (let y = 0; y < 10; y++) {
-      put(col - 1, G.top + y, String(y + 1), 'g-head');
-      for (let x = 0; x < 10; x++) put(col + x, G.top + y, '', 'g-sea' + (clickable ? ' g-click' : ''), { gx: `${side}:${x}:${y}` });
+      put(b.col - 1, b.top + y, String(y + 1), 'g-head');
+      for (let x = 0; x < 10; x++) put(b.col + x, b.top + y, '', 'g-sea' + (clickable ? ' g-click' : ''), { gx: `${side}:${x}:${y}` });
     }
     for (const [x, y, cls] of cellMarks) {
-      const cell = td(refOf(col + x, G.top + y));
+      const cell = td(refOf(b.col + x, b.top + y));
       if (!cell) continue;
       for (const k of cls.split(' ')) {
         if (k === 'ship') cell.classList.add('g-ship');
@@ -448,25 +499,55 @@ function paintGame() {
       }
     }
   };
-  if (!state) {
-    put(G.oppCol, G.statusRow, hooks.status() || '', 'g-status');
-    return;
-  }
+  putText(L.status, hooks.status() || '', state?.myTurn ? 'g-turn' : '');
+  if (!state) return;
   const { mine, theirs } = hooks.marks();
   const placing = hooks.isPlacing();
-  drawBoard(G.oppCol, state.opponent ? state.opponent.name : '—', theirs, 'opp', hooks.canFire());
-  drawBoard(G.meCol, s.you, mine, 'me', placing);
+  drawBoard(L.opp, state.opponent ? state.opponent.name : '—', theirs, 'opp', hooks.canFire());
+  drawBoard(L.me, s.you, mine, 'me', placing);
+
+  // Comandi
+  const cmds = [];
   if (placing) {
-    put(G.oppCol, G.cmdRow, s.cmdRandom, 'g-cmd', { cmd: 'random' });
-    put(G.oppCol + 3, G.cmdRow, s.cmdRotate + (hooks.dir() === 'h' ? ' ↔' : ' ↕'), 'g-cmd', { cmd: 'rotate' });
-    put(G.oppCol + 6, G.cmdRow, s.cmdClear, 'g-cmd', { cmd: 'clear' });
-    put(G.oppCol + 8, G.cmdRow, s.cmdReady, 'g-cmd g-primary', { cmd: 'ready' });
+    cmds.push(['random', s.cmdRandom], ['rotate', s.cmdRotate + (hooks.dir() === 'h' ? ' ↔' : ' ↕')], ['clear', s.cmdClear], ['ready', s.cmdReady, 'g-primary']);
   } else if (state.phase === 'finished') {
-    put(G.oppCol, G.cmdRow, state.solo ? s.cmdRematch : s.cmdNew, 'g-cmd g-primary', { cmd: 'rematch' });
+    cmds.push(['rematch', state.solo ? s.cmdRematch : s.cmdNew, 'g-primary']);
   }
-  if (placing) put(G.oppCol, G.hintRow, document.getElementById('placement-hint')?.textContent || '', 'g-status');
-  put(G.oppCol, G.statusRow, hooks.status() || '', 'g-status' + (state.myTurn ? ' g-turn' : ''));
-  if (lastFlash) put(G.oppCol, G.flashRow, lastFlash, 'g-status muted');
+  const confirming = Date.now() < confirmUntil;
+  cmds.push(['restart', confirming ? s.cmdSure : s.cmdRestart, confirming ? 'g-danger' : '']);
+  if (L.cmds.vertical) {
+    cmds.forEach(([cmd, label, cls = ''], i) => put(L.cmds.col, L.cmds.row + i, label, 'g-cmd ' + cls, { cmd }));
+  } else {
+    // Telefono: tutti i comandi in una riga, come piccoli pulsanti dentro una cella
+    const cell = put(L.cmds.col, L.cmds.row, '', 'g-cmdbar');
+    const bar = document.createElement('span');
+    bar.className = 'g-bar';
+    for (const [cmd, label, cls = ''] of cmds) {
+      const b = document.createElement('span');
+      b.className = 'g-btn ' + cls;
+      b.dataset.cmd = cmd;
+      b.textContent = label;
+      bar.appendChild(b);
+    }
+    cell.appendChild(bar);
+  }
+  if (placing) putText(L.hint, document.getElementById('placement-hint')?.textContent || '');
+  if (lastFlash) putText(L.flash, lastFlash, 'muted');
+}
+
+function runCmd(cmd) {
+  if (cmd === 'restart') {
+    if (Date.now() < confirmUntil) {
+      confirmUntil = 0;
+      hooks.actions.restart?.();
+    } else {
+      confirmUntil = Date.now() + 4000;
+      setTimeout(paintGame, 4100);
+    }
+    paintGame();
+    return;
+  }
+  hooks.actions[cmd]?.();
 }
 
 function onGridClick(e) {
@@ -476,8 +557,9 @@ function onGridClick(e) {
   const ref = cell.dataset.ref;
   select(ref, false);
   if (!hooks || current !== 'note') return;
-  if (cell.dataset.cmd) {
-    hooks.actions[cell.dataset.cmd]?.();
+  const cmd = e.target.closest('[data-cmd]')?.dataset.cmd;
+  if (cmd) {
+    runCmd(cmd);
     return;
   }
   if (cell.dataset.gx) {
@@ -511,6 +593,13 @@ export function toggle(force) {
     document.title = gameTitle;
   }
 }
+
+// Se si passa da telefono a PC (o si ruota lo schermo oltre la soglia) il foglio si ricostruisce.
+window.matchMedia('(max-width: 640px)').addEventListener?.('change', () => {
+  if (!built) return;
+  if (!sheetList().includes(current)) current = 'report';
+  rebuild();
+});
 
 function isTyping(target) {
   return target instanceof HTMLElement && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName));
