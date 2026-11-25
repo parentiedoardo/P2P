@@ -1,6 +1,6 @@
 # P2P
 
-Gioco web di Battaglia navale 1 contro 1, in tempo reale tra due PC.
+Giochi 1 contro 1 nel browser, in tempo reale tra due PC: Flotta, Scacchi e Dama italiana.
 Gira su Cloudflare Workers + Durable Objects (piano gratuito).
 
 ## Come si gioca
@@ -10,9 +10,21 @@ Gira su Cloudflare Workers + Durable Objects (piano gratuito).
    Clic per piazzare, **R** o "Ruota" per cambiare verso, "Casuale" per fare in fretta.
 4. Si spara a turno, un colpo per turno. Vince chi affonda per primo tutta la flotta avversaria.
 
+### Scacchi e Dama
+- Si sceglie il gioco nella schermata iniziale. Chi crea la sessione ha il bianco e muove per primo.
+- Clic sul pezzo, poi sulla casella d'arrivo (le mosse possibili sono evidenziate). Promozione automatica a donna.
+- Scacchi: regole complete (arrocco, en passant, scacco matto, stallo, 50 mosse, materiale insufficiente).
+- Dama italiana: presa obbligatoria con le priorità italiane, la pedina non mangia la dama, patta dopo 40 mosse a testa senza prese.
+
+### Tempo per turno
+- Facoltativo: 30 s, 1, 2, 5 o 10 minuti. Il conto alla rovescia è accanto allo stato.
+- Quando mancano il 20% del tempo (almeno 10 secondi) arriva un avviso: messaggio nella pagina, "(!)" nel titolo
+  della scheda e notifica del browser (anche a scheda chiusa). Se il giocatore non aveva ancora aperto il turno, parte anche l'email.
+- Tempo scaduto: a Scacchi e Dama perde chi doveva muovere; alla Flotta il turno passa all'avversario.
+
 ### Modalità
 - **P2P**: sfida un collega mandandogli il link della sessione.
-- **P1P**: gioca da solo contro il PC (tutto nel browser, la partita resta salvata se ricarichi).
+- **P1P**: gioca da solo contro il PC (tutto nel browser, la partita resta salvata se ricarichi). Anche a Scacchi e Dama, con il tempo per turno.
 
 ### Aspetto e discrezione
 - Temi dal menu in alto: Ufficio, Foglio di calcolo (predefinito), Disegno tecnico, Quaderno a quadretti, Sonar. Il browser lo ricorda.
@@ -21,6 +33,7 @@ Gira su Cloudflare Workers + Durable Objects (piano gratuito).
 - **Barra spaziatrice** (o il pulsante "Modalità discreta"): copre tutto con un finto foglio di calcolo.
   Si può scrivere liberamente nelle celle (doppio clic, F2 o inizia a digitare; Invio conferma).
   Nel foglio **Note**, scorrendo a destra, ci sono il campo in miniatura e i comandi: si gioca da lì.
+  A Scacchi i pezzi sono lettere (maiuscole il bianco, minuscole il nero), a Dama "o" e "x" (maiuscole le dame).
   Si torna al gioco con Spazio, Esc o toccando l'icona verde in alto a sinistra.
   Segnale discreto: quando tocca a te, in basso a sinistra c'è scritto "Ricalcolo" invece di "Pronto".
 - Opzione "Apri sempre in modalità discreta" nella schermata iniziale.
@@ -34,7 +47,10 @@ Se chiudi la scheda, riaprendo lo stesso link riprendi la partita da dove era ri
   del campo e il pulsante "Torna alla partita" (il link ti fa rientrare anche da un altro PC). Una sola email per turno.
 
 ## Struttura
-- `public/engine.js` – regole del gioco (condivise da server e browser)
+- `public/engine.js` – regole della Flotta (condivise da server e browser)
+- `public/games/chess.js`, `checkers.js` – regole e avversario PC di Scacchi e Dama; `match.js` – turni, tempo, esito
+- `public/boardui.js` – scacchiera 8x8 (pagina e foglio Note)
+- `src/schedule.js` – eventi a tempo del turno (promemoria, avviso, scadenza)
 - `public/index.html`, `app.js`, `style.css` – interfaccia
 - `src/worker.js` – API e `GameRoom`, un Durable Object per partita: WebSocket, timer dei promemoria
 - `src/webpush.js` – notifiche push (VAPID + cifratura) senza librerie esterne

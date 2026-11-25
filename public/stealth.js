@@ -2,6 +2,7 @@
 // Spazio o il pulsante la attivano; Spazio (fuori dalle celle in modifica), Esc o il logo verde la chiudono.
 // Nel foglio "Note", scorrendo a destra, ci sono il campo in miniatura e i comandi.
 import { lang } from '/i18n.js';
+import * as BoardUI from '/boardui.js';
 
 const L = {
   it: {
@@ -96,6 +97,7 @@ const LAYOUT = {
     cmds: { col: 13, row: 5, vertical: true },
     status: 'N11', hint: 'N12', flash: 'N13',
     area: { c0: 13, r0: 3, c1: 39, r1: 16 },
+    sq: { col: 17, title: 3, head: 4, top: 5, hint: 'N12', flash: 'N13' },
     textWidth: 280,
     gameColsFrom: 15, // da P in poi colonne strette
   },
@@ -106,6 +108,7 @@ const LAYOUT = {
     me: { col: 1, title: 16, head: 17, top: 18 },
     hint: 'B28', flash: 'B29',
     area: { c0: 0, r0: 1, c1: 11, r1: 29 },
+    sq: { col: 1, title: 2, head: 3, top: 4, hint: 'B16', flash: 'B17' },
     textWidth: 320,
     gameColsFrom: 0,
   },
@@ -231,6 +234,7 @@ let selected = { report: 'B5', budget: 'B5', mov: 'C4', y2025: 'B5', note: 'A3' 
 let edits = {};
 let editing = null; // { ref, input, td }
 let lastFlash = '';
+let clockText = '';
 
 try { edits = JSON.parse(localStorage.getItem('bn:sheet-edits') || '{}') || {}; } catch {}
 const saveEdits = () => { try { localStorage.setItem('bn:sheet-edits', JSON.stringify(edits)); } catch {} };
@@ -267,6 +271,17 @@ export function flash(text) {
   lastFlash = text;
   if (active && current === 'note') paintGame();
 }
+
+/** Tempo rimasto del turno, aggiunto al testo di stato nel foglio Note. */
+export function setClock(text) {
+  if (text === clockText) return;
+  clockText = text;
+  if (!active || current !== 'note' || !hooks) return;
+  const span = td(layout().status)?.querySelector('.g-text');
+  if (span) span.textContent = span.title = statusLine();
+}
+
+const statusLine = () => (hooks.status() || '') + (clockText ? ' · ' + clockText : '');
 
 export function refresh() {
   if (active && current === 'note') paintGame();
@@ -458,6 +473,7 @@ function paintGame() {
       cell.className = sel ? 'sel' : '';
       delete cell.dataset.cmd;
       delete cell.dataset.gx;
+      delete cell.dataset.sq;
     }
   }
   const put = (c, r, text, cls = '', extra = {}) => {
@@ -499,12 +515,17 @@ function paintGame() {
       }
     }
   };
-  putText(L.status, hooks.status() || '', state?.myTurn ? 'g-turn' : '');
+  putText(L.status, statusLine(), state?.myTurn ? 'g-turn' : '');
   if (!state) return;
-  const { mine, theirs } = hooks.marks();
+  const squares = BoardUI.isBoardKind(state.kind);
   const placing = hooks.isPlacing();
-  drawBoard(L.opp, state.opponent ? state.opponent.name : '—', theirs, 'opp', hooks.canFire());
-  drawBoard(L.me, s.you, mine, 'me', placing);
+  if (squares) {
+    drawSquares(state, put, L.sq);
+  } else {
+    const { mine, theirs } = hooks.marks();
+    drawBoard(L.opp, state.opponent ? state.opponent.name : '—', theirs, 'opp', hooks.canFire());
+    drawBoard(L.me, s.you, mine, 'me', placing);
+  }
 
   // Comandi
   const cmds = [];
@@ -532,7 +553,40 @@ function paintGame() {
     cell.appendChild(bar);
   }
   if (placing) putText(L.hint, document.getElementById('placement-hint')?.textContent || '');
-  if (lastFlash) putText(L.flash, lastFlash, 'muted');
+  if (squares) putText(L.sq.hint, document.getElementById('sq-last')?.textContent || '');
+  if (lastFlash) putText(squares ? L.sq.flash : L.flash, lastFlash, 'muted');
+}
+
+/** Scacchiera 8x8 nel foglio: lettere dei pezzi (scacchi) o o/x (dama), dal lato del giocatore. */
+function drawSquares(state, put, b) {
+  const picker = hooks.picker;
+  const flip = BoardUI.flipped(state);
+  const targets = new Set(picker.targets(state));
+  const movable = picker.movable(state);
+  const last = state.lastMove ? new Set([state.lastMove.from, state.lastMove.to]) : new Set();
+  const check = state.kind === 'scacchi' && state.check ? state.board.indexOf(state.turn + 'K') : -1;
+  const clickable = !!state.myTurn;
+  put(b.col, b.title, state.opponent ? state.opponent.name : '—', 'g-title');
+  for (let col = 0; col < 8; col++) put(b.col + col, b.head, BoardUI.FILES[flip ? 7 - col : col].toUpperCase(), 'g-head');
+  for (let row = 0; row < 8; row++) {
+    const r = flip ? row : 7 - row;
+    put(b.col - 1, b.top + row, String(r + 1), 'g-head');
+    for (let col = 0; col < 8; col++) {
+      const f = flip ? 7 - col : col;
+      const i = r * 8 + f;
+      const p = state.board[i];
+      const color = !p ? null : state.kind === 'scacchi' ? p[0] : p.toLowerCase();
+      const cls = ['g-sq'];
+      if (BoardUI.isDark(state.kind, i)) cls.push('g-dark');
+      if (color) cls.push(color === state.color ? 'g-own' : 'g-opp');
+      if (last.has(i)) cls.push('g-last');
+      if (targets.has(i)) cls.push('g-target');
+      if (picker.sel === i) cls.push('g-selsq');
+      if (i === check) cls.push('g-check');
+      if (clickable && (movable.has(i) || targets.has(i))) cls.push('g-click');
+      put(b.col + col, b.top + row, BoardUI.cellText(state.kind, p), cls.join(' '), { sq: String(i) });
+    }
+  }
 }
 
 function runCmd(cmd) {
@@ -560,6 +614,10 @@ function onGridClick(e) {
   const cmd = e.target.closest('[data-cmd]')?.dataset.cmd;
   if (cmd) {
     runCmd(cmd);
+    return;
+  }
+  if (cell.dataset.sq) {
+    hooks.onSquare(Number(cell.dataset.sq));
     return;
   }
   if (cell.dataset.gx) {

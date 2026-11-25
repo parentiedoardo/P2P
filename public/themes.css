@@ -181,3 +181,24 @@
 @media (prefers-reduced-motion: reduce) {
   [data-theme="sonar"] #board-opp::before, [data-theme="sonar"] .status.turn { animation: none; }
 }
+
+/* ---------- Scacchiera nei temi ---------- */
+:root[data-theme="excel"] { --sq-light: #ffffff; --sq-dark: #e2efda; --sq-last: rgba(255, 235, 156, 0.9); --sq-mark: #217346; }
+[data-theme="excel"] .sqboard { border-top: 1px solid #c6c6c6; border-left: 1px solid #c6c6c6; }
+[data-theme="excel"] .sq { border-right: 1px solid #d4d4d4; border-bottom: 1px solid #d4d4d4; }
+:root[data-theme="tecnico"] { --sq-light: #fdfdfb; --sq-dark: #d9d9d4; --sq-last: rgba(0, 0, 0, 0.12); --sq-mark: #111; }
+[data-theme="tecnico"] .sqboard { border-top: 1px solid #111; border-left: 1px solid #111; }
+[data-theme="tecnico"] .sq { border-right: 1px solid #111; border-bottom: 1px solid #111; }
+[data-theme="tecnico"] .sq.dark { background: repeating-linear-gradient(45deg, rgba(0, 0, 0, 0.35) 0 1px, transparent 1px 6px), var(--sq-light); }
+:root[data-theme="quaderno"] { --sq-light: transparent; --sq-dark: rgba(0, 0, 0, 0.1); --sq-last: rgba(0, 0, 0, 0.12); --sq-mark: #1a1a1a; }
+[data-theme="quaderno"] .sqboard { border: 2px solid #1a1a1a; background: rgba(255, 255, 255, 0.4); }
+[data-theme="quaderno"] .sq.dark { background: repeating-linear-gradient(-35deg, rgba(0, 0, 0, 0.35) 0 1px, transparent 1px 6px); }
+:root[data-theme="sonar"] { --sq-light: #0b3b1d; --sq-dark: #04140a; --sq-last: rgba(77, 255, 136, 0.2); --sq-mark: #4dff88; }
+[data-theme="sonar"] .sqboard { padding: 4px; border-radius: 6px; background: var(--surface); box-shadow: 0 0 20px rgba(77, 255, 136, 0.15); }
+[data-theme="sonar"] .pc.w { color: #b8ffd0; -webkit-text-stroke-color: #021006; text-shadow: 0 0 6px rgba(77, 255, 136, 0.7); }
+[data-theme="sonar"] .pc.b { color: #ff7a59; text-shadow: 0 0 6px rgba(255, 122, 89, 0.6); }
+[data-theme="sonar"] .disc.w { background: #b8ffd0; box-shadow: 0 0 8px rgba(77, 255, 136, 0.7); }
+[data-theme="sonar"] .disc.b { background: #ff7a59; border-color: #4a1000; box-shadow: 0 0 8px rgba(255, 122, 89, 0.6); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]), :root[data-theme="mare"] { --sq-light: #3a424b; --sq-dark: #262b31; --sq-mark: #8fb3d6; }
+}

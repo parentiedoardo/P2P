@@ -82,3 +82,13 @@ body.stealth-on { overflow: hidden; }
   .xl-ribbon, .xl-search, .xl-qa, .xl-zoom { display: none; }
   .xl-grid col.c-wide { width: 150px; }
 }
+/* Scacchi e dama nel foglio Note: lettere nelle celle, come codici in una tabella */
+.xl-grid td.g-sq { padding: 0; text-align: center; font-size: 11px; font-family: Consolas, "Cascadia Mono", monospace; }
+.xl-grid td.g-dark { background: #f2f2f2; }
+.xl-grid td.g-own { font-weight: 700; color: #1f1f1f; }
+.xl-grid td.g-opp { color: #7f7f7f; }
+.xl-grid td.g-last { background: #fff2cc; }
+.xl-grid td.g-selsq { outline: 2px solid #1d6f42; outline-offset: -2px; background: #e2efda; }
+.xl-grid td.g-target { background: #e2efda; }
+.xl-grid td.g-target:empty::after { content: "·"; color: #1d6f42; font-weight: 700; }
+.xl-grid td.g-check { background: #f8cbad; color: #c00000; }

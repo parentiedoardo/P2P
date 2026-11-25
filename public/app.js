@@ -1,7 +1,9 @@
 import { SIZE, FLEET, fits, randomFleet, shipCells, validateFleet } from '/engine.js';
 import { t, lang, setLang, applyStatic, shipName, errorText } from '/i18n.js';
 import * as Stealth from '/stealth.js';
-import { LocalGame } from '/local.js';
+import { LocalGame, LocalMatch } from '/local.js';
+import * as BoardUI from '/boardui.js';
+import { warnBeforeMs, cleanKind, cleanTurnSeconds } from '/games/match.js';
 
 const $ = (id) => document.getElementById(id);
 const LETTERS = 'ABCDEFGHIJ';
@@ -33,7 +35,11 @@ let retry = 0;
 let draft = [];          // navi posizionate ma non ancora confermate
 let dir = 'h';
 let hover = null;        // {x,y} cella sotto il mouse in fase di posizionamento
-let pending = false;     // attendiamo la risposta a un colpo
+let pending = false;     // attendiamo la risposta a un colpo o a una mossa
+const picker = new BoardUI.Picker(); // scacchi e dama: pezzo selezionato
+let clockOffset = 0;     // differenza tra l'orologio del server e quello del browser
+let warnedFor = null;    // inizio del turno per cui abbiamo già avvisato che il tempo scade
+const isBoard = (v) => BoardUI.isBoardKind(v?.kind);
 
 // ---------- Schermate ----------
 function show(screen) {
@@ -58,10 +64,21 @@ $('email-join').value = savedEmail;
 $('start-stealth').checked = store.get('bn:startStealth') === '1';
 $('start-stealth').addEventListener('change', (e) => store.set('bn:startStealth', e.target.checked ? '1' : '0'));
 
-async function post(url, name, email) {
+// Scelta del gioco e del tempo per turno (ricordate per la prossima volta)
+const kindInputs = [...document.querySelectorAll('input[name="kind"]')];
+const selectedKind = () => kindInputs.find((i) => i.checked)?.value || 'navale';
+{
+  const k = cleanKind(store.get('bn:kind'));
+  for (const i of kindInputs) i.checked = i.value === k;
+}
+for (const i of kindInputs) i.addEventListener('change', () => store.set('bn:kind', selectedKind()));
+$('turn-time').value = String(cleanTurnSeconds(store.get('bn:turnSeconds')));
+$('turn-time').addEventListener('change', () => store.set('bn:turnSeconds', $('turn-time').value));
+
+async function post(url, name, email, extra = {}) {
   store.set('bn:name', name);
   store.set('bn:email', email);
-  const res = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name, email, lang }) });
+  const res = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name, email, lang, ...extra }) });
   const data = await res.json().catch(() => ({}));
   if (!res.ok || data.error) throw new Error(errorText(data.code, data.error));
   return data;
@@ -70,7 +87,10 @@ async function post(url, name, email) {
 $('form-create').addEventListener('submit', async (e) => {
   e.preventDefault();
   try {
-    const data = await post('/api/games', $('name-create').value, $('email-create').value);
+    const data = await post('/api/games', $('name-create').value, $('email-create').value, {
+      kind: selectedKind(),
+      turnSeconds: Number($('turn-time').value),
+    });
     gameId = data.gameId;
     token = data.token;
     store.set('bn:' + gameId, token);
@@ -82,8 +102,7 @@ $('form-create').addEventListener('submit', async (e) => {
 $('btn-solo').addEventListener('click', () => {
   const name = $('name-create').value.trim();
   if (name) store.set('bn:name', name);
-  store.del('bn:solo');
-  location.href = '/?solo=1';
+  location.href = `/?solo=1&kind=${selectedKind()}&ts=${$('turn-time').value}&new=1`;
 });
 
 $('form-join').addEventListener('submit', async (e) => {
@@ -107,9 +126,10 @@ function connect() {
   };
   ws.onmessage = (ev) => {
     const msg = JSON.parse(ev.data);
+    if (msg.serverNow) clockOffset = msg.serverNow - Date.now();
     if (msg.type === 'state') onState(msg.state);
     else if (msg.type === 'error') onError(msg.code, msg.message);
-    else if (msg.type === 'info' && msg.code === 'restarted') { draft = []; toast(t('restarted', { name: msg.name })); }
+    else if (msg.type === 'info') onInfo(msg);
   };
   ws.onclose = (ev) => {
     if (ev.code === 4403) {
@@ -122,6 +142,20 @@ function connect() {
     setStatus(t('reconnecting'));
     setTimeout(connect, Math.min(1000 * 2 ** retry++, 15000));
   };
+}
+
+function onInfo(msg) {
+  if (msg.code === 'restarted') {
+    draft = [];
+    picker.reset();
+    toast(t('restarted', { name: msg.name }));
+  } else if (msg.code === 'timeout') {
+    const name = state?.opponent?.name || t('opponent');
+    const text = msg.byMe
+      ? (isBoard(state) ? t('timeoutLostMe') : t('timeoutSkipMe', { name }))
+      : (isBoard(state) ? t('timeoutWinOpp', { name }) : t('timeoutSkipOpp', { name }));
+    toast(text);
+  }
 }
 
 function onError(code, message) {
@@ -145,7 +179,13 @@ function startGame() {
 function startSolo() {
   show('game');
   const name = store.get('bn:name') || (lang === 'it' ? 'Tu' : 'You');
-  local = new LocalGame({ name, onState, onError });
+  const kind = cleanKind(params.get('kind'));
+  const turnSeconds = cleanTurnSeconds(params.get('ts'));
+  const fresh = params.get('new') === '1';
+  // Senza "new" un ricaricamento della pagina riprende la partita salvata.
+  if (fresh) history.replaceState(null, '', `/?solo=1&kind=${kind}&ts=${turnSeconds}`);
+  const opts = { name, onState, onError, onInfo, turnSeconds, fresh };
+  local = BoardUI.isBoardKind(kind) ? new LocalMatch({ kind, ...opts }) : new LocalGame(opts);
   local.emit();
 }
 
@@ -161,17 +201,23 @@ function onState(next) {
   state = next;
   pending = false;
   if (next.phase !== 'waiting' && next.phase !== 'placing') draft = [];
-  if (prev && !prev.myTurn && next.myTurn) {
-    const s = next.lastShot;
-    if (s && !s.byMe) toast(t('shotAt', { name: next.opponent.name, cell: cellName(s.x, s.y), result: describe(s) }));
+  if (isBoard(next)) {
+    if (!next.myTurn || prev?.kind !== next.kind) picker.reset();
+    const m = next.lastMove;
+    if (prev && !prev.myTurn && next.myTurn && m && !m.byMe && !next.solo) toast(t('movedToast', { name: next.opponent.name, move: m.text }));
+  } else {
+    if (prev && !prev.myTurn && next.myTurn) {
+      const s = next.lastShot;
+      if (s && !s.byMe) toast(t('shotAt', { name: next.opponent.name, cell: cellName(s.x, s.y), result: describe(s) }));
+    }
+    const key = (v) => (v?.lastShot ? `${v.lastShot.by}:${v.lastShot.x}:${v.lastShot.y}` : '');
+    if (next.lastShot?.byMe && key(next) !== key(prev)) {
+      toast(t('yourShot', { cell: cellName(next.lastShot.x, next.lastShot.y), result: describe(next.lastShot) }));
+    }
   }
-  const key = (v) => (v?.lastShot ? `${v.lastShot.by}:${v.lastShot.x}:${v.lastShot.y}` : '');
-  if (next.lastShot?.byMe && key(next) !== key(prev)) {
-    toast(t('yourShot', { cell: cellName(next.lastShot.x, next.lastShot.y), result: describe(next.lastShot) }));
-  }
-  Stealth.setTitle(next.myTurn ? '(1) P2P' : 'P2P');
+  updateTitle();
   Stealth.setTurn(next.myTurn);
-  if (prev && !prev.myTurn && next.myTurn && document.visibilityState !== 'visible') localNotify(next);
+  if (prev && !prev.myTurn && next.myTurn && document.visibilityState !== 'visible') localNotify(turnText(next));
   markSeen();
   render();
 }
@@ -182,18 +228,57 @@ function markSeen() {
 }
 document.addEventListener('visibilitychange', markSeen);
 
+function updateTitle() {
+  if (!state) return;
+  const warned = state.myTurn && warnedFor === state.turnStartedAt;
+  Stealth.setTitle(warned ? '(!) P2P' : state.myTurn ? '(1) P2P' : 'P2P');
+}
+
+/** Testo della notifica "tocca a te". */
+function turnText(s) {
+  if (isBoard(s)) return s.lastMove ? t('movedToast', { name: s.opponent.name, move: s.lastMove.text }) : t('started');
+  return s.lastShot ? t('shotAt', { name: s.opponent.name, cell: cellName(s.lastShot.x, s.lastShot.y), result: describe(s.lastShot) }) : t('started');
+}
+
 /** Notifica dalla pagina aperta in background (se il push non è attivo su questo browser). */
-function localNotify(s) {
+function localNotify(body) {
   if (local || Stealth.isActive() || pushEndpoint || !('Notification' in window) || Notification.permission !== 'granted') return;
   try {
-    const n = new Notification('P2P', {
-      body: s.lastShot ? t('shotAt', { name: s.opponent.name, cell: cellName(s.lastShot.x, s.lastShot.y), result: describe(s.lastShot) }) : t('started'),
-      tag: 'turn-' + s.id,
-      icon: '/icon.png',
-    });
+    const n = new Notification('P2P', { body, tag: 'turn-' + state.id, icon: '/icon.png' });
     n.onclick = () => { window.focus(); n.close(); };
   } catch {}
 }
+
+// ---------- Tempo per turno ----------
+function remainingMs() {
+  if (!state || !state.turnSeconds || state.phase !== 'playing' || !state.turnStartedAt) return null;
+  return state.turnStartedAt + state.turnSeconds * 1000 - (Date.now() + (local ? 0 : clockOffset));
+}
+
+const fmtClock = (ms) => {
+  const sec = Math.max(0, Math.ceil(ms / 1000));
+  return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+};
+
+function tick() {
+  const el = $('clock');
+  const ms = remainingMs();
+  el.hidden = ms === null;
+  if (ms === null) { Stealth.setClock(''); return; }
+  const low = ms <= warnBeforeMs(state.turnSeconds);
+  el.textContent = '⏱ ' + fmtClock(ms);
+  el.classList.toggle('mine', !!state.myTurn);
+  el.classList.toggle('low', low && !!state.myTurn);
+  Stealth.setClock(fmtClock(ms));
+  if (low && state.myTurn && ms > 0 && warnedFor !== state.turnStartedAt) {
+    warnedFor = state.turnStartedAt;
+    const text = t('timeWarn', { s: Math.ceil(ms / 1000) });
+    toast(text);
+    updateTitle();
+    if (document.visibilityState !== 'visible') localNotify(text);
+  }
+}
+setInterval(tick, 250);
 
 function setStatus(text, turn = false) {
   const el = $('status');
@@ -238,7 +323,7 @@ function nextLen() {
 }
 
 function placing() {
-  return !!state && (state.phase === 'waiting' || state.phase === 'placing') && !state.me.ready;
+  return !!state && !isBoard(state) && (state.phase === 'waiting' || state.phase === 'placing') && !state.me.ready;
 }
 
 /** Segni da disegnare sulle due griglie: usati sia dalla pagina sia dal foglio "Note". */
@@ -266,18 +351,71 @@ function marks({ withHover = true } = {}) {
   return { mine, theirs };
 }
 
+function resultText() {
+  const name = state.opponent ? state.opponent.name : t('opponent');
+  const reason = t('res_' + state.result);
+  if (state.winner === 'me') return t('wonBy', { reason });
+  if (state.winner === 'opponent') return t('lostBy', { name, reason });
+  return t('drawBy', { reason });
+}
+
 function statusText() {
   const me = state.me;
   const opp = state.opponent;
   const name = opp ? opp.name : t('opponent');
+  if (isBoard(state)) {
+    if (state.phase === 'waiting') return t('waitingOpponent');
+    if (state.phase === 'playing') return state.myTurn ? (state.check ? t('yourMoveCheck') : t('yourMove')) : t('theirMove', { name });
+    return resultText();
+  }
   if (state.phase === 'waiting') return placing() ? t('waitingPlacing') : t('waitingReady');
   if (state.phase === 'placing') return me.ready ? t('placingReady', { name }) : opp.ready && !state.solo ? t('placingYouOppReady', { name }) : t('placingYou');
   if (state.phase === 'playing') return state.myTurn ? t('yourTurn') : t('theirTurn', { name });
   return state.winner === 'me' ? t('youWon') : t('theyWon', { name });
 }
 
+function renderSquares() {
+  const el = $('board-sq');
+  const flip = BoardUI.flipped(state);
+  if (el.dataset.flip !== (flip ? '1' : '0') || el.dataset.kind !== state.kind) {
+    BoardUI.build(el, flip, onSquare);
+    el.dataset.kind = state.kind;
+  }
+  BoardUI.paint(el, state, picker);
+  el.classList.toggle('clickable', !!state.myTurn && !pending);
+  const opp = state.opponent;
+  const mine = t(state.color === 'w' ? 'white' : 'black');
+  const theirs = t(state.color === 'w' ? 'black' : 'white');
+  $('sq-opp').textContent = `${opp ? opp.name : t('opponent')} (${theirs})`;
+  $('sq-me').textContent = `${state.me.name} (${mine})`;
+  $('sq-opp-online').classList.toggle('on', !!state.opponentOnline);
+  $('sq-opp-online').title = state.opponentOnline ? t('online') : t('offline');
+  $('sq-opp-online').hidden = !!state.solo;
+  const m = state.lastMove;
+  $('sq-last').textContent = !m ? t('noMovesYet') : m.byMe ? t('lastMoveMine', { move: m.text }) : t('lastMoveTheirs', { name: opp?.name, move: m.text });
+  const limit = state.turnSeconds ? (state.turnSeconds < 60 ? state.turnSeconds + ' s' : state.turnSeconds / 60 + ' min') : t('noLimit');
+  $('sq-info').textContent = `${t('moveNo', { n: state.moveCount })} · ${t('perTurn', { t: limit })}`;
+}
+
 function render() {
   if (!state) return;
+  const board = isBoard(state);
+  document.querySelector('.boards').hidden = board;
+  $('sq-area').hidden = !board;
+  if (board) {
+    $('placement').hidden = true;
+    $('share').hidden = state.phase !== 'waiting';
+    $('share-link').value = location.origin + '/?g=' + state.id;
+    $('notify').hidden = !!state.solo;
+    renderSquares();
+    setStatus(statusText(), state.myTurn);
+    if (!state.solo) renderNotify();
+    $('finished').hidden = state.phase !== 'finished';
+    $('btn-rematch').hidden = !state.solo;
+    $('finished-text').textContent = resultText();
+    tick();
+    return;
+  }
   const me = state.me;
   const opp = state.opponent;
   $('my-name').textContent = '(' + me.name + ')';
@@ -314,6 +452,17 @@ function render() {
   $('finished').hidden = state.phase !== 'finished';
   $('btn-rematch').hidden = !state.solo;
   $('finished-text').textContent = state.winner === 'me' ? t('youWonLong') : t('youLostLong', { name: opp?.name });
+  tick();
+}
+
+function onSquare(i) {
+  if (!isBoard(state) || pending) return;
+  const r = picker.click(state, i);
+  if (r.send) {
+    pending = true;
+    send(r.send);
+  } else if (r.hint) toast(t(r.hint));
+  render();
 }
 
 // ---------- Interazioni ----------
@@ -342,9 +491,10 @@ const actions = {
   random() { draft = randomFleet(); render(); },
   clear() { draft = []; render(); },
   ready() { if (validateFleet(draft) === null) send({ type: 'place', ships: draft }); },
-  rematch() { if (local) { draft = []; local.restart(); } else location.href = '/'; },
+  rematch() { picker.reset(); if (local) { draft = []; local.restart(); } else location.href = '/'; },
   restart() {
     draft = [];
+    picker.reset();
     if (local) local.restart();
     else send({ type: 'restart' });
   },
@@ -481,6 +631,8 @@ Stealth.bind({
   canFire: () => !!state?.myTurn && !pending,
   onMyCell,
   onOppCell,
+  onSquare,
+  picker,
   actions,
   dir: () => dir,
 });

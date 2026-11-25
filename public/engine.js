@@ -85,8 +85,15 @@ export function randomFleet(rand = Math.random) {
   }
 }
 
-export function createGame(id, now = Date.now()) {
-  return { id, createdAt: now, phase: 'waiting', players: [], turn: 0, winner: null, turnStartedAt: null, lastShot: null };
+export function createGame(id, now = Date.now(), { turnSeconds = 0 } = {}) {
+  return { id, kind: 'navale', createdAt: now, phase: 'waiting', players: [], turn: 0, winner: null, turnStartedAt: null, lastShot: null, turnSeconds };
+}
+
+/** Tempo del turno scaduto: nella battaglia il turno passa semplicemente all'avversario. */
+export function skipTurn(game, now = Date.now()) {
+  if (game.phase !== 'playing') return;
+  game.turn = 1 - game.turn;
+  game.turnStartedAt = now;
 }
 
 export function cleanName(name) {
@@ -177,7 +184,9 @@ export function viewFor(game, idx) {
   const opp = game.players[1 - idx];
   const sunkOf = (owner, shooter) => (owner?.ships && shooter ? owner.ships.filter((s) => isSunk(s, shooter.shots)) : []);
   return {
+    kind: 'navale',
     id: game.id,
+    turnSeconds: game.turnSeconds || 0,
     phase: game.phase,
     you: idx,
     myTurn: game.phase === 'playing' && game.turn === idx,

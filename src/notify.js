@@ -50,6 +50,62 @@ export function boardImage(view) {
   return cv.png();
 }
 
+// ---------- Scacchiera 8x8 (scacchi e dama) ----------
+// Sagome dei pezzi degli scacchi in 10x10 pixel.
+const GLYPH = {
+  P: ['..........', '....##....', '...####...', '...####...', '....##....', '...####...', '....##....', '...####...', '..######..', '..######..'],
+  R: ['..........', '..#.##.#..', '..######..', '...####...', '...####...', '...####...', '...####...', '..######..', '.########.', '.########.'],
+  N: ['..........', '....##....', '...####...', '..######..', '.###.###..', '.....###..', '....####..', '...#####..', '..######..', '..######..'],
+  B: ['....##....', '...#..#...', '...##.#...', '...####...', '....##....', '...####...', '....##....', '...####...', '..######..', '..######..'],
+  Q: ['.#..##..#.', '.#..##..#.', '.##.##.##.', '.########.', '..######..', '...####...', '...####...', '..######..', '.########.', '.########.'],
+  K: ['....##....', '...####...', '....##....', '.##.##.##.', '##########', '##########', '.########.', '..######..', '..######..', '.########.'],
+};
+const SQ = 40;
+const D = { light: [240, 236, 226], dark: [118, 140, 105], w: [250, 250, 250], wEdge: [70, 70, 70], b: [40, 40, 40], bEdge: [10, 10, 10], last: [230, 190, 60], king: [214, 170, 40] };
+export const SQUARES_IMAGE_SIZE = { width: PAD * 2 + SQ * 8, height: PAD * 2 + SQ * 8 };
+
+function drawGlyph(cv, x, y, type, white) {
+  const g = GLYPH[type];
+  const s = 3;
+  const ox = x + (SQ - 10 * s) / 2;
+  const oy = y + (SQ - 10 * s) / 2;
+  const edge = white ? D.wEdge : [235, 235, 235];
+  const fill = white ? D.w : D.b;
+  for (const pass of [0, 1]) {
+    g.forEach((row, j) => [...row].forEach((ch, i) => {
+      if (ch !== '#') return;
+      if (pass === 0) cv.rect(ox + i * s - 1, oy + j * s - 1, s + 2, s + 2, edge);
+      else cv.rect(ox + i * s, oy + j * s, s, s, fill);
+    }));
+  }
+}
+
+/** PNG della scacchiera (o damiera) vista dal lato del giocatore. */
+export function squaresImage(view) {
+  const cv = new Canvas(SQUARES_IMAGE_SIZE.width, SQUARES_IMAGE_SIZE.height, C.bg);
+  const flip = view.color === 'b';
+  const pos = (i) => {
+    const f = i % 8, r = Math.floor(i / 8);
+    const col = flip ? 7 - f : f, row = flip ? r : 7 - r;
+    return [PAD + col * SQ, PAD + row * SQ];
+  };
+  const marked = new Set(view.lastMove ? [view.lastMove.from, view.lastMove.to] : []);
+  for (let i = 0; i < 64; i++) {
+    const [x, y] = pos(i);
+    const dark = ((i % 8) + Math.floor(i / 8)) % 2 === (view.kind === 'dama' ? 1 : 0);
+    cv.rect(x, y, SQ, SQ, marked.has(i) ? D.last : dark ? D.dark : D.light);
+    if (view.check && view.board[i] === view.turn + 'K') cv.outline(x, y, SQ, SQ, 3, [200, 40, 40]);
+    const p = view.board[i];
+    if (!p) continue;
+    if (view.kind === 'scacchi') { drawGlyph(cv, x, y, p[1], p[0] === 'w'); continue; }
+    const white = p.toLowerCase() === 'w';
+    cv.circle(x + SQ / 2, y + SQ / 2, SQ / 2 - 4, white ? D.wEdge : D.bEdge);
+    cv.circle(x + SQ / 2, y + SQ / 2, SQ / 2 - 6, white ? D.w : D.b);
+    if (p === 'W' || p === 'B') cv.circle(x + SQ / 2, y + SQ / 2, 6, D.king);
+  }
+  return cv.png();
+}
+
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const LETTERS = 'ABCDEFGHIJ';
 
@@ -64,7 +120,13 @@ const TEXT = {
     alt: 'Situazione della sessione', yours: 'La tua flotta', theirs: (o) => `Flotta di ${o}`, button: 'Torna alla sessione',
     pushTurn: 'Tocca a te', pushShot: (o, d) => `${o} ha sparato in ${d}.`, pushStart: (o) => `La sessione con ${o} è iniziata.`,
     pushWait: 'Ti stanno aspettando', pushWaitBody: (o) => `${o} aspetta la tua mossa da 5 minuti.`,
-    pushEnd: 'Sessione finita', pushEndBody: (o) => `Ha vinto ${o}.`,
+    pushEnd: 'Sessione finita', pushEndBody: (o) => `Ha vinto ${o}.`, pushDrawBody: 'Finita in parità.',
+    lastMove: (o, m) => `Ultima mossa di ${o}: ${m}.`, pushMove: (o, m) => `${o} ha mosso: ${m}.`,
+    subjectUrgent: (o) => `Tempo quasi scaduto · ${o} · P2P`,
+    pushWarn: 'Tempo quasi scaduto', pushWarnBody: (s) => `Hai ancora ${s} secondi per il tuo turno.`,
+    pushTimeout: 'Tempo scaduto', pushTimeoutLost: 'Hai perso il turno per tempo: sessione finita.',
+    pushTimeoutSkip: 'Il tuo turno è passato all\'avversario.', pushTimeoutOpp: (o) => `${o} ha finito il tempo: tocca a te.`,
+    pushTimeoutWin: (o) => `${o} ha finito il tempo: hai vinto.`,
   },
   en: {
     miss: 'miss', hit: 'hit', sunk: 'hit and sunk',
@@ -76,7 +138,13 @@ const TEXT = {
     alt: 'Current board', yours: 'Your fleet', theirs: (o) => `${o}'s fleet`, button: 'Back to the session',
     pushTurn: 'Your turn', pushShot: (o, d) => `${o} fired at ${d}.`, pushStart: (o) => `The session with ${o} has started.`,
     pushWait: 'Someone is waiting', pushWaitBody: (o) => `${o} has been waiting for your move for 5 minutes.`,
-    pushEnd: 'Session over', pushEndBody: (o) => `${o} won.`,
+    pushEnd: 'Session over', pushEndBody: (o) => `${o} won.`, pushDrawBody: 'It ended in a draw.',
+    lastMove: (o, m) => `${o}'s last move: ${m}.`, pushMove: (o, m) => `${o} played ${m}.`,
+    subjectUrgent: (o) => `Time almost up · ${o} · P2P`,
+    pushWarn: 'Time almost up', pushWarnBody: (s) => `You have ${s} seconds left for your turn.`,
+    pushTimeout: 'Time is up', pushTimeoutLost: 'You ran out of time: session over.',
+    pushTimeoutSkip: 'Your turn passed to your opponent.', pushTimeoutOpp: (o) => `${o} ran out of time: your turn.`,
+    pushTimeoutWin: (o) => `${o} ran out of time: you won.`,
   },
 };
 
@@ -90,18 +158,18 @@ export function describeShot(s, lang = 'it') {
 }
 
 /** Contenuto del promemoria "tocca a te". */
-export function reminderContent({ playerName, opponentName, lastShot, link, imageUrl, lang = 'it' }) {
+export function reminderContent({ playerName, opponentName, lastShot, lastMove, link, imageUrl, captions = true, urgent = false, lang = 'it' }) {
   const T = texts(lang);
-  const subject = T.subject(opponentName);
-  const shot = lastShot ? T.last(opponentName, describeShot(lastShot, lang)) : '';
+  const subject = urgent ? T.subjectUrgent(opponentName) : T.subject(opponentName);
+  const shot = lastShot ? T.last(opponentName, describeShot(lastShot, lang)) : lastMove ? T.lastMove(opponentName, lastMove) : '';
   const text = T.text(playerName, opponentName, shot, link);
   const html = `<!doctype html><html><body style="margin:0;background:#f4f5f7;font-family:Segoe UI,Arial,sans-serif;color:#24292f">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:24px 12px">
 <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;background:#fff;border:1px solid #d0d7de;border-radius:8px">
 <tr><td style="padding:20px 24px 8px;font-size:20px;font-weight:700">${esc(T.heading(playerName))}</td></tr>
 <tr><td style="padding:0 24px 12px;font-size:15px;line-height:1.5">${esc(T.waiting(opponentName))} ${esc(shot)}</td></tr>
-<tr><td style="padding:0 24px"><img src="${esc(imageUrl)}" width="552" alt="${esc(T.alt)}" style="display:block;width:100%;height:auto;border:0"></td></tr>
-<tr><td style="padding:4px 24px 0;font-size:12px;color:#6a737d"><table role="presentation" width="100%"><tr><td width="50%">${esc(T.yours)}</td><td>${esc(T.theirs(opponentName))}</td></tr></table></td></tr>
+${imageUrl ? `<tr><td style="padding:0 24px"><img src="${esc(imageUrl)}" width="${captions ? 552 : 360}" alt="${esc(T.alt)}" style="display:block;${captions ? 'width:100%;' : 'max-width:100%;margin:0 auto;'}height:auto;border:0"></td></tr>` : ''}
+${imageUrl && captions ? `<tr><td style="padding:4px 24px 0;font-size:12px;color:#6a737d"><table role="presentation" width="100%"><tr><td width="50%">${esc(T.yours)}</td><td>${esc(T.theirs(opponentName))}</td></tr></table></td></tr>` : ''}
 <tr><td align="center" style="padding:20px 24px 24px"><a href="${esc(link)}" style="background:#1d6f42;color:#fff;text-decoration:none;font-weight:600;padding:12px 22px;border-radius:6px;display:inline-block">${esc(T.button)}</a></td></tr>
 </table></td></tr></table></body></html>`;
   return { subject, text, html };

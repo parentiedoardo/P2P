@@ -1,7 +1,9 @@
 import { DurableObject } from 'cloudflare:workers';
 import * as E from '../public/engine.js';
+import * as M from '../public/games/match.js';
 import { sendPush, b64urlEncode } from './webpush.js';
-import { boardImage, reminderContent, sendEmail, describeShot, texts } from './notify.js';
+import { boardImage, squaresImage, reminderContent, sendEmail, describeShot, texts } from './notify.js';
+import { pendingEvents, nextAlarm } from './schedule.js';
 
 const ALPHABET = 'abcdefghjkmnpqrstuvwxyz23456789';
 
@@ -31,10 +33,21 @@ export function cleanEmail(email) {
 
 const cleanLang = (l) => (l === 'en' ? 'en' : 'it');
 
+// Battaglia ("navale") e giochi su scacchiera ("scacchi", "dama") condividono la stanza.
+const isBoard = (g) => g.kind === 'scacchi' || g.kind === 'dama';
+const turnOf = (g) => (isBoard(g) ? M.currentIdx(g) : g.turn);
+const viewOf = (g, idx) => (isBoard(g) ? M.viewFor(g, idx) : E.viewFor(g, idx));
+
 async function readProfile(request) {
   let body = {};
   try { body = await request.json(); } catch {}
-  return { name: E.cleanName(body?.name), email: cleanEmail(body?.email), lang: cleanLang(body?.lang) };
+  return {
+    name: E.cleanName(body?.name),
+    email: cleanEmail(body?.email),
+    lang: cleanLang(body?.lang),
+    kind: M.cleanKind(body?.kind),
+    turnSeconds: M.cleanTurnSeconds(body?.turnSeconds),
+  };
 }
 
 export default {
@@ -76,7 +89,7 @@ export default {
   },
 };
 
-/** Una stanza per partita: conserva lo stato, inoltra gli aggiornamenti e manda i promemoria. */
+/** Una stanza per partita: conserva lo stato, inoltra gli aggiornamenti, gestisce tempo e promemoria. */
 export class GameRoom extends DurableObject {
   get reminderMs() {
     return Number(this.env.REMINDER_MINUTES ?? 5) * 60_000;
@@ -97,7 +110,10 @@ export class GameRoom extends DurableObject {
   }
 
   async load() {
-    if (!this.game) this.game = (await this.ctx.storage.get('game')) || null;
+    if (!this.game) {
+      this.game = (await this.ctx.storage.get('game')) || null;
+      if (this.game && !this.game.kind) this.game.kind = 'navale';
+    }
     return this.game;
   }
 
@@ -107,19 +123,21 @@ export class GameRoom extends DurableObject {
 
   newPlayer(profile) {
     const token = randomId(24);
-    const idx = E.addPlayer(this.game, { token, name: profile.name });
+    const idx = isBoard(this.game) ? M.addPlayer(this.game, { token, name: profile.name }) : E.addPlayer(this.game, { token, name: profile.name });
     Object.assign(this.game.players[idx], { lang: profile.lang, email: profile.email, imageKey: randomId(24), push: [], seenAt: 0 });
     return token;
   }
 
   async create(gameId, profile, origin) {
     if (await this.load()) return { error: 'Partita già esistente' };
-    this.game = E.createGame(gameId);
+    const opts = { turnSeconds: profile.turnSeconds };
+    this.game = profile.kind === 'navale' ? E.createGame(gameId, Date.now(), opts) : M.createMatch(gameId, profile.kind, opts);
     this.game.origin = origin;
     this.game.remindedFor = null;
+    this.game.warnedFor = null;
     const token = this.newPlayer(profile);
     await this.save();
-    return { token };
+    return { token, kind: this.game.kind };
   }
 
   async join(profile) {
@@ -128,7 +146,8 @@ export class GameRoom extends DurableObject {
       const token = this.newPlayer(profile);
       await this.save();
       this.broadcast();
-      return { token };
+      await this.onTurnChanged();
+      return { token, kind: this.game.kind };
     } catch (e) {
       if (e instanceof E.GameError) return { error: e.message, code: e.code };
       throw e;
@@ -139,7 +158,7 @@ export class GameRoom extends DurableObject {
     await this.load();
     const idx = this.game ? this.game.players.findIndex((p) => key && p.imageKey === key) : -1;
     if (idx === -1) return null;
-    return boardImage(E.viewFor(this.game, idx));
+    return isBoard(this.game) ? squaresImage(M.viewFor(this.game, idx)) : boardImage(E.viewFor(this.game, idx));
   }
 
   async fetch(request) {
@@ -161,30 +180,37 @@ export class GameRoom extends DurableObject {
 
   async webSocketMessage(ws, raw) {
     await this.load();
+    const g = this.game;
     const idx = Number(this.ctx.getTags(ws)[0]);
-    const player = this.game.players[idx];
+    const player = g.players[idx];
     let msg;
     try { msg = JSON.parse(raw); } catch { return; }
     try {
       switch (msg.type) {
         case 'place': {
-          E.placeShips(this.game, idx, msg.ships);
+          if (isBoard(g)) return;
+          E.placeShips(g, idx, msg.ships);
           break;
         }
         case 'fire': {
-          E.fire(this.game, idx, msg.x, msg.y);
+          if (isBoard(g)) return;
+          E.fire(g, idx, msg.x, msg.y);
+          break;
+        }
+        case 'move': {
+          if (!isBoard(g)) return;
+          M.move(g, idx, { from: msg.from, to: msg.to, promo: msg.promo, path: msg.path });
           break;
         }
         case 'restart': {
-          E.resetGame(this.game);
-          this.game.remindedFor = null;
+          if (isBoard(g)) M.reset(g);
+          else E.resetGame(g);
+          g.remindedFor = null;
+          g.warnedFor = null;
           await this.save();
           this.broadcast();
           await this.onTurnChanged();
-          const other = this.ctx.getWebSockets().filter((s) => this.ctx.getTags(s)[0] !== String(idx));
-          for (const s of other) {
-            try { s.send(JSON.stringify({ type: 'info', code: 'restarted', name: player.name })); } catch {}
-          }
+          this.sendInfo({ code: 'restarted', name: player.name }, (i) => i !== idx);
           return;
         }
         case 'seen': {
@@ -215,7 +241,7 @@ export class GameRoom extends DurableObject {
           return;
         }
         case 'ping':
-          ws.send(JSON.stringify({ type: 'pong' }));
+          ws.send(JSON.stringify({ type: 'pong', serverNow: Date.now() }));
           return;
         default:
           return;
@@ -243,10 +269,19 @@ export class GameRoom extends DurableObject {
     for (const s of sockets) {
       const idx = Number(this.ctx.getTags(s)[0]);
       const p = this.game.players[idx];
-      const state = E.viewFor(this.game, idx);
+      const state = viewOf(this.game, idx);
       state.opponentOnline = online[1 - idx];
       state.settings = { email: p.email || '', pushEndpoints: p.push.map((x) => x.endpoint) };
-      try { s.send(JSON.stringify({ type: 'state', state })); } catch {}
+      try { s.send(JSON.stringify({ type: 'state', state, serverNow: Date.now() })); } catch {}
+    }
+  }
+
+  /** Messaggio informativo ai giocatori connessi (filtrati per indice). */
+  sendInfo(info, filter = () => true) {
+    for (const s of this.ctx.getWebSockets()) {
+      const i = Number(this.ctx.getTags(s)[0]);
+      if (!filter(i)) continue;
+      try { s.send(JSON.stringify({ type: 'info', ...info, byMe: info.by === undefined ? undefined : info.by === i })); } catch {}
     }
   }
 
@@ -255,20 +290,31 @@ export class GameRoom extends DurableObject {
     return `${this.game.origin}/?g=${this.game.id}&t=${p.token}`;
   }
 
-  /** Dopo ogni mossa: notifica push immediata e sveglia per il promemoria. */
+  /** Sveglia per il prossimo evento a tempo del turno (o nessuna). */
+  async schedule() {
+    const at = nextAlarm(this.game, this.reminderMs);
+    if (at) await this.ctx.storage.setAlarm(at);
+    else await this.ctx.storage.deleteAlarm();
+  }
+
+  /** Dopo ogni mossa: notifica push immediata e sveglia per promemoria e tempo. */
   async onTurnChanged() {
     const g = this.game;
+    await this.schedule();
     if (g.phase === 'playing') {
-      await this.ctx.storage.setAlarm(g.turnStartedAt + this.reminderMs);
-      const T = texts(g.players[g.turn].lang);
-      const opp = g.players[1 - g.turn].name;
-      await this.push(g.turn, {
-        title: T.pushTurn,
-        body: g.lastShot ? T.pushShot(opp, describeShot(g.lastShot, g.players[g.turn].lang)) : T.pushStart(opp),
-      });
-    } else {
-      await this.ctx.storage.deleteAlarm();
-      if (g.phase === 'finished') {
+      const t = turnOf(g);
+      const T = texts(g.players[t].lang);
+      const opp = g.players[1 - t].name;
+      let body = T.pushStart(opp);
+      if (isBoard(g) && g.lastMove) body = T.pushMove(opp, g.lastMove.text);
+      else if (!isBoard(g) && g.lastShot) body = T.pushShot(opp, describeShot(g.lastShot, g.players[t].lang));
+      await this.push(t, { title: T.pushTurn, body });
+    } else if (g.phase === 'finished') {
+      if (g.winner === null || g.winner === undefined) {
+        const other = g.lastMove ? 1 - g.lastMove.by : 1;
+        const T = texts(g.players[other].lang);
+        await this.push(other, { title: T.pushEnd, body: T.pushDrawBody });
+      } else {
         const loser = 1 - g.winner;
         const T = texts(g.players[loser].lang);
         await this.push(loser, { title: T.pushEnd, body: T.pushEndBody(g.players[g.winner].name) });
@@ -289,41 +335,81 @@ export class GameRoom extends DurableObject {
     }
   }
 
-  /** Scatta 5 minuti dopo l'inizio di un turno. */
+  /** Eventi a tempo: promemoria dopo 5 minuti, avviso di tempo in scadenza, tempo scaduto. */
   async alarm() {
     await this.load();
     const g = this.game;
-    if (!g || g.phase !== 'playing') return;
-    const due = g.turnStartedAt + this.reminderMs;
-    if (Date.now() < due) {
-      await this.ctx.storage.setAlarm(due);
-      return;
+    if (!g) return;
+    const now = Date.now();
+    for (const ev of pendingEvents(g, this.reminderMs)) {
+      if (ev.at > now) break;
+      const idx = turnOf(g);
+      const p = g.players[idx];
+      const t0 = g.turnStartedAt;
+      if (ev.type === 'reminder') {
+        g.remindedFor = t0;
+        await this.save();
+        if (p.seenAt < t0) await this.sendReminder(idx);
+      } else if (ev.type === 'warn') {
+        g.warnedFor = t0;
+        const urgentEmail = g.remindedFor !== t0 && p.seenAt < t0;
+        if (urgentEmail) g.remindedFor = t0;
+        await this.save();
+        const seconds = Math.max(1, Math.round((t0 + g.turnSeconds * 1000 - now) / 1000));
+        const T = texts(p.lang);
+        await this.push(idx, { title: T.pushWarn, body: T.pushWarnBody(seconds) });
+        if (urgentEmail) await this.sendReminder(idx, { urgent: true, push: false });
+      } else if (ev.type === 'timeout') {
+        await this.onTimeout(idx);
+        return;
+      }
     }
-    const idx = g.turn;
-    const p = g.players[idx];
-    if (g.remindedFor === g.turnStartedAt) return; // già mandato per questo turno
-    if (p.seenAt >= g.turnStartedAt) return; // l'ha già visto
-    g.remindedFor = g.turnStartedAt;
-    await this.save();
-    await this.sendReminder(idx);
+    await this.schedule();
   }
 
-  async sendReminder(idx) {
+  /** Tempo scaduto: a scacchi e dama perde chi doveva muovere, nella battaglia il turno passa. */
+  async onTimeout(idx) {
+    const g = this.game;
+    if (isBoard(g)) M.timeout(g);
+    else E.skipTurn(g);
+    await this.save();
+    this.broadcast();
+    this.sendInfo({ code: 'timeout', by: idx });
+    const other = 1 - idx;
+    const Ti = texts(g.players[idx].lang);
+    const To = texts(g.players[other].lang);
+    if (isBoard(g)) {
+      await this.push(idx, { title: Ti.pushTimeout, body: Ti.pushTimeoutLost });
+      await this.push(other, { title: To.pushEnd, body: To.pushTimeoutWin(g.players[idx].name) });
+    } else {
+      await this.push(idx, { title: Ti.pushTimeout, body: Ti.pushTimeoutSkip });
+      await this.push(other, { title: To.pushTurn, body: To.pushTimeoutOpp(g.players[idx].name) });
+    }
+    await this.schedule();
+  }
+
+  async sendReminder(idx, { urgent = false, push = true } = {}) {
     const g = this.game;
     const p = g.players[idx];
     const opp = g.players[1 - idx];
     // Il parametro v cambia a ogni mossa, così i client email non mostrano un'immagine vecchia.
-    const imageUrl = `${g.origin}/api/games/${g.id}/board.png?k=${p.imageKey}&v=${p.shots.length + opp.shots.length}`;
+    const version = isBoard(g) ? g.moveCount : p.shots.length + opp.shots.length;
+    const imageUrl = `${g.origin}/api/games/${g.id}/board.png?k=${p.imageKey}&v=${version}`;
     const content = reminderContent({
       playerName: p.name,
       opponentName: opp.name,
-      lastShot: g.lastShot && g.lastShot.by !== idx ? g.lastShot : null,
+      lastShot: !isBoard(g) && g.lastShot && g.lastShot.by !== idx ? g.lastShot : null,
+      lastMove: isBoard(g) && g.lastMove && g.lastMove.by !== idx ? g.lastMove.text : null,
       link: this.link(idx),
       imageUrl,
+      captions: !isBoard(g),
+      urgent,
       lang: p.lang,
     });
     if (p.email) await sendEmail(this.env, { to: p.email, ...content });
-    const T = texts(p.lang);
-    await this.push(idx, { title: T.pushWait, body: T.pushWaitBody(opp.name) });
+    if (push) {
+      const T = texts(p.lang);
+      await this.push(idx, { title: T.pushWait, body: T.pushWaitBody(opp.name) });
+    }
   }
 }

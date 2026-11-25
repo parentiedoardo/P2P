@@ -34,6 +34,7 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 body {
   margin: 0;
   background: var(--bg);
@@ -199,4 +200,71 @@ form.inline { margin-top: 16px; }
 @media (max-width: 360px) {
   .top .brand span, .top .brand { font-size: 0.85rem; }
   #theme { width: 84px; }
+}
+
+/* ---------- Scelta del gioco ---------- */
+.field-label { font-weight: 600; font-size: 0.9rem; }
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.seg label { position: relative; font-weight: 500; text-align: center; cursor: pointer; }
+.seg label + label { border-left: 1px solid var(--border); }
+.seg input { position: absolute; opacity: 0; inset: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+.seg span { display: block; padding: 9px 6px; }
+.seg input:checked + span { background: var(--accent); color: var(--accent-text); font-weight: 600; }
+.seg input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: -4px; }
+#turn-time { font: inherit; padding: 9px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text); }
+
+/* ---------- Tempo del turno ---------- */
+.clock {
+  flex: none; display: flex; align-items: center; padding: 0 12px; border-radius: 12px; font-variant-numeric: tabular-nums;
+  font-weight: 600; background: var(--surface); border: 1px solid var(--border); color: var(--muted);
+}
+.clock.mine { color: var(--text); }
+.clock.low { background: var(--hit); border-color: var(--hit); color: #fff; }
+.mini .clock { font-size: 0.8rem; padding: 0 8px; }
+
+/* ---------- Scacchiera (scacchi e dama) ---------- */
+:root { --sq-light: #f4f6f8; --sq-dark: #b9c4cf; --sq-last: rgba(255, 196, 0, 0.38); --sq-mark: #3b5b7a; }
+.sq-area { display: grid; grid-template-columns: minmax(0, 520px) minmax(160px, 1fr); gap: 24px; align-items: start; }
+.sqboard {
+  display: grid; grid-template-columns: 18px repeat(8, minmax(0, 1fr)); grid-template-rows: repeat(8, auto) 18px;
+  width: 100%; max-width: 520px; user-select: none; container-type: inline-size;
+}
+.sqboard > * { min-width: 0; }
+.sq {
+  aspect-ratio: 1; border: 0; padding: 0; border-radius: 0; position: relative; cursor: default;
+  display: grid; place-items: center; background: var(--sq-light); color: inherit; line-height: 1;
+  font-size: 9.6cqi; min-height: 0; overflow: hidden;
+}
+.sq.dark { background: var(--sq-dark); }
+.sq.last { background-image: linear-gradient(var(--sq-last), var(--sq-last)); }
+.sqboard.clickable .sq.movable, .sqboard.clickable .sq.target { cursor: pointer; }
+.sqboard.clickable .sq.movable:hover { box-shadow: inset 0 0 0 2px var(--sq-mark); }
+.sq.sel { box-shadow: inset 0 0 0 3px var(--sq-mark) !important; }
+.sq.target::after { content: ""; position: absolute; width: 26%; height: 26%; border-radius: 50%; background: var(--sq-mark); opacity: 0.5; }
+.sq.target.occupied::after { width: auto; height: auto; inset: 5%; background: none; border: 3px solid var(--sq-mark); }
+.sq.incheck { box-shadow: inset 0 0 0 3px var(--hit); background-image: radial-gradient(circle, rgba(192, 80, 77, 0.45), transparent 70%); }
+.pc { font-family: "Segoe UI Symbol", "Noto Sans Symbols 2", "DejaVu Sans", "Apple Symbols", serif; pointer-events: none; display: block; line-height: 1; height: 1em; }
+.pc.w { color: #fff; -webkit-text-stroke: 0.035em #1d1d1d; paint-order: stroke fill; text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25); }
+.pc.b { color: #1d1d1d; }
+.disc { width: 74%; aspect-ratio: 1; border-radius: 50%; display: block; position: relative; pointer-events: none; box-shadow: inset 0 -0.08em 0 rgba(0, 0, 0, 0.22), 0 0.03em 0.06em rgba(0, 0, 0, 0.45); }
+.disc.w { background: #fbfaf6; border: 1px solid #5a5a5a; }
+.disc.b { background: #2d2d2d; border: 1px solid #000; }
+.disc.king::after { content: ""; position: absolute; inset: 26%; border-radius: 50%; border: 0.07em solid #c99a1e; }
+.sq-me { margin-top: 6px; }
+.sq-side p { margin: 0 0 8px; }
+.sq-side { padding-top: 30px; }
+.mini .sq-area { grid-template-columns: max-content 1fr; gap: 12px; }
+.mini .sqboard { width: 200px; grid-template-columns: 12px repeat(8, minmax(0, 1fr)); grid-template-rows: repeat(8, auto) 12px; }
+.mini .sqboard .label { font-size: 0.5rem; }
+.mini .sq.target.occupied::after { border-width: 2px; }
+.mini .sq-area h2 { font-size: 0.75rem; margin-bottom: 4px; }
+.mini .sq-side { font-size: 0.8rem; padding-top: 20px; }
+@media (max-width: 640px) {
+  .sq-area { grid-template-columns: 1fr; gap: 8px; }
+  .sqboard { width: min(100%, 60svh); margin: 0 auto; }
+  .sq-side { padding-top: 0; font-size: 0.85rem; }
+  .sq-side p { margin: 0 0 4px; }
+  .clock { padding: 0 8px; font-size: 0.85rem; }
+  .mini .sq-area { grid-template-columns: 1fr; }
+  .mini .sqboard { margin: 0; }
 }

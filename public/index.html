@@ -48,6 +48,21 @@
         <input id="name-create" maxlength="24" autocomplete="nickname" required data-i18n-placeholder="namePlaceholder">
         <label for="email-create"><span data-i18n="emailOptional">Email</span> <span class="muted" data-i18n="emailHint"></span></label>
         <input id="email-create" type="email" maxlength="254" autocomplete="email" data-i18n-placeholder="emailPlaceholder">
+        <span class="field-label" id="kind-label" data-i18n="gameLabel">Gioco</span>
+        <div class="seg" role="radiogroup" aria-labelledby="kind-label">
+          <label><input type="radio" name="kind" value="navale" checked><span data-i18n="kindNavale">Flotta</span></label>
+          <label><input type="radio" name="kind" value="scacchi"><span data-i18n="kindScacchi">Scacchi</span></label>
+          <label><input type="radio" name="kind" value="dama"><span data-i18n="kindDama">Dama</span></label>
+        </div>
+        <label for="turn-time" data-i18n="turnTime">Tempo per turno</label>
+        <select id="turn-time">
+          <option value="0" data-i18n="timeNone">Nessun limite</option>
+          <option value="30">30 s</option>
+          <option value="60">1 min</option>
+          <option value="120">2 min</option>
+          <option value="300">5 min</option>
+          <option value="600">10 min</option>
+        </select>
         <button type="submit" class="primary" data-i18n="newP2P">P2P</button>
         <button type="button" id="btn-solo" data-i18n="newP1P">P1P</button>
       </form>
@@ -71,6 +86,7 @@
     <section id="screen-game" hidden>
       <div class="status-row">
         <div id="status" class="status" role="status" aria-live="polite"></div>
+        <span id="clock" class="clock" hidden data-i18n-title="clockTitle"></span>
         <button id="btn-restart" type="button" class="restart" data-i18n="restart"></button>
       </div>
 
@@ -116,6 +132,18 @@
         <div class="board-wrap" id="wrap-opp">
           <h2><span id="opp-title"></span> <span id="opp-online" class="dot"></span></h2>
           <div id="board-opp" class="board"></div>
+        </div>
+      </div>
+
+      <div id="sq-area" class="sq-area" hidden>
+        <div class="board-wrap">
+          <h2><span id="sq-opp"></span> <span id="sq-opp-online" class="dot"></span></h2>
+          <div id="board-sq" class="sqboard"></div>
+          <h2 class="sq-me"><span id="sq-me"></span></h2>
+        </div>
+        <div class="sq-side">
+          <p id="sq-last" class="muted"></p>
+          <p id="sq-info" class="muted"></p>
         </div>
       </div>
 
